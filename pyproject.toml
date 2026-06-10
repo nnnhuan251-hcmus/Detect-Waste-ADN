@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "waste-detection"
+version = "0.1.0"
+description = "Waste Detection with Transfer Learning and Fine-tuning using TACO dataset"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Deep Learning Final Project Team" }
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 88

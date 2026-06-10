@@ -1,0 +1,65 @@
+experiment:
+  name: run1_baseline
+  description: Baseline with resize, normalize, pretrained initialization, constant LR, and end-to-end training.
+  seed: 42
+
+data:
+  augmentation_level: minimal
+
+augmentation:
+  resize: true
+  normalize: true
+
+  horizontal_flip: false
+  vertical_flip: false
+  rotate90: false
+  rotate180: false
+  mosaic: false
+  color_jitter: false
+  random_brightness_contrast: false
+
+loss:
+  detector_loss: native
+  classifier_loss: cross_entropy
+  class_weighting: false
+  focal_loss:
+    enabled: false
+
+optimizer:
+  name: adamw
+  lr: 0.0001
+  weight_decay: 0.0005
+
+scheduler:
+  name: constant
+  enabled: false
+
+fine_tuning:
+  pretrained: true
+  train_mode: end_to_end
+  freeze_backbone: false
+  freeze_epochs: 0
+  gradual_unfreeze: false
+
+training:
+  epochs: 50
+  batch_size: 16
+  num_workers: 2
+  mixed_precision: true
+  early_stopping: true
+  patience: 10
+
+checkpoint:
+  save_best: true
+  monitor_detector: val_map50_95
+  monitor_classifier: val_macro_f1
+  mode: max
+
+tracking:
+  use_wandb: true
+  project: waste-detection-taco
+  group: ablation
+  tags:
+    - baseline
+    - pretrained
+    - constant_lr

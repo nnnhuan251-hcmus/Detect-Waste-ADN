@@ -1,0 +1,103 @@
+experiment:
+  name: run3_freeze_cosine_warmup
+  description: Strong augmentation with freeze/unfreeze, cosine annealing scheduler, warm-up, and gradient control.
+  seed: 42
+
+data:
+  augmentation_level: strong
+
+augmentation:
+  resize: true
+  normalize: true
+
+  horizontal_flip: true
+  vertical_flip: false
+
+  rotate90: true
+  rotate180: true
+
+  mosaic: true
+  mosaic_prob: 0.5
+
+  color_jitter: true
+  color_jitter_params:
+    brightness: 0.2
+    contrast: 0.2
+    saturation: 0.2
+    hue: 0.05
+
+  random_brightness_contrast: true
+
+loss:
+  detector_loss: native
+  classifier_loss: focal_loss
+  class_weighting: true
+
+  focal_loss:
+    enabled: true
+    gamma: 2.0
+    alpha: null
+    reduction: mean
+
+optimizer:
+  name: adamw
+  lr: 0.0001
+  backbone_lr: 0.00001
+  head_lr: 0.0001
+  weight_decay: 0.0005
+
+scheduler:
+  name: cosine_annealing
+  enabled: true
+  warmup:
+    enabled: true
+    warmup_epochs: 3
+    warmup_start_lr: 0.000001
+  cosine:
+    min_lr: 0.000001
+
+fine_tuning:
+  pretrained: true
+  train_mode: staged_finetuning
+  freeze_backbone: true
+  freeze_epochs: 5
+  gradual_unfreeze: true
+  unfreeze_schedule:
+    - epoch: 5
+      unfreeze: classifier_head
+    - epoch: 10
+      unfreeze: last_blocks
+    - epoch: 15
+      unfreeze: full_model
+
+gradient_control:
+  enabled: true
+  gradient_clipping: true
+  max_norm: 10.0
+  monitor_gradient_norm: true
+
+training:
+  epochs: 70
+  batch_size: 16
+  num_workers: 2
+  mixed_precision: true
+  early_stopping: true
+  patience: 15
+
+checkpoint:
+  save_best: true
+  monitor_detector: val_map50_95
+  monitor_classifier: val_macro_f1
+  mode: max
+
+tracking:
+  use_wandb: true
+  project: waste-detection-taco
+  group: ablation
+  tags:
+    - strong_aug
+    - focal_loss
+    - freeze_unfreeze
+    - cosine_annealing
+    - warmup
+    - gradient_control

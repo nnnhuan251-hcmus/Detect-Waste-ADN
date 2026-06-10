@@ -1,0 +1,79 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*
+
+# Data
+data/raw/
+data/interim/*
+data/processed/*
+
+# Keep directory structure
+!data/interim/.gitkeep
+!data/processed/coco_7class/.gitkeep
+!data/processed/yolo_7class/.gitkeep
+!data/processed/yolo_binary_waste/.gitkeep
+!data/processed/crops_7class/.gitkeep
+
+# Outputs
+outputs/checkpoints/*
+outputs/metrics/*
+outputs/predictions/*
+outputs/figures/*
+outputs/wandb/*
+
+!outputs/checkpoints/.gitkeep
+!outputs/metrics/.gitkeep
+!outputs/predictions/.gitkeep
+!outputs/figures/.gitkeep
+!outputs/wandb/.gitkeep
+
+# Weights & Biases
+wandb/
+outputs/wandb/
+
+# Model weights
+*.pt
+*.pth
+*.onnx
+*.engine
+*.ckpt
+
+# Logs
+*.log
+logs/
+
+# Kaggle
+kaggle.json
+
+# Temporary files
+tmp/
+temp/
+.cache/

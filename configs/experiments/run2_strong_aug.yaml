@@ -1,0 +1,79 @@
+experiment:
+  name: run2_strong_aug
+  description: Strong augmentation with orthogonal rotation, mosaic, color jitter, and focal loss for classifier.
+  seed: 42
+
+data:
+  augmentation_level: strong
+
+augmentation:
+  resize: true
+  normalize: true
+
+  horizontal_flip: true
+  vertical_flip: false
+
+  rotate90: true
+  rotate180: true
+
+  mosaic: true
+  mosaic_prob: 0.5
+
+  color_jitter: true
+  color_jitter_params:
+    brightness: 0.2
+    contrast: 0.2
+    saturation: 0.2
+    hue: 0.05
+
+  random_brightness_contrast: true
+
+loss:
+  detector_loss: native
+  classifier_loss: focal_loss
+  class_weighting: true
+
+  focal_loss:
+    enabled: true
+    gamma: 2.0
+    alpha: null
+    reduction: mean
+
+optimizer:
+  name: adamw
+  lr: 0.0001
+  weight_decay: 0.0005
+
+scheduler:
+  name: constant
+  enabled: false
+
+fine_tuning:
+  pretrained: true
+  train_mode: end_to_end
+  freeze_backbone: false
+  freeze_epochs: 0
+  gradual_unfreeze: false
+
+training:
+  epochs: 50
+  batch_size: 16
+  num_workers: 2
+  mixed_precision: true
+  early_stopping: true
+  patience: 10
+
+checkpoint:
+  save_best: true
+  monitor_detector: val_map50_95
+  monitor_classifier: val_macro_f1
+  mode: max
+
+tracking:
+  use_wandb: true
+  project: waste-detection-taco
+  group: ablation
+  tags:
+    - strong_aug
+    - focal_loss
+    - constant_lr
