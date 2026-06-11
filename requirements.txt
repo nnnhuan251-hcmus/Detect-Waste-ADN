@@ -25,3 +25,5 @@ wandb>=0.17,<1.0
 pytest>=8.0
 
 iterative-stratification>=0.1.9
+
+iterative-stratification>=0.1.9
