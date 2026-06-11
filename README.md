@@ -426,9 +426,9 @@ First, create a new model configuration (e.g., `configs/models/hybrid_finetune.y
 
 ```yaml
 detector:
-  weights: outputs/checkpoints/path_to_detector_best.pt
+  weights: outputs/checkpoints/hybrid_yolov8n_effb0/run1_baseline/weights/best.pt
 classifier:
-  weights: outputs/checkpoints/path_to_classifier_best.pth
+  weights: outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth
 ```
 
 Then, train using an experiment configuration with freezing and warm-up (e.g., `run3_freeze_cosine_warmup.yaml`):
@@ -475,8 +475,8 @@ python scripts/eval/evaluate_classifier.py \
 python scripts/eval/evaluate_hybrid.py \
   --data-config configs/data/taco_7class.yaml \
   --model-config configs/models/hybrid_yolov8n_effb0.yaml \
-  --detector-weights outputs/checkpoints/path_to_yolov8n_binary_best.pt \
-  --classifier-weights outputs/checkpoints/path_to_classifier_best.pth \
+  --detector-weights outputs/checkpoints/hybrid_yolov8n_effb0/run1_baseline/weights/best.pt \
+  --classifier-weights outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth \
   --split test
 ```
 
@@ -491,8 +491,8 @@ Bạn không cần truyền các file cấu hình YAML phức tạp. Chỉ cần
 ```bash
 python scripts/easy_infer.py \
   --image path/to/test_image.jpg \
-  --detector weights/detector.pt \
-  --classifier_weights weights/classifier.pth \
+  --detector outputs/checkpoints/hybrid_yolov8n_effb0/run1_baseline/weights/best.pt \
+  --classifier_weights outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth \
   --conf 0.25
 ```
 Kết quả trực quan (Bounding Box + Nhãn + Độ tin cậy) sẽ được lưu thẳng thành `inference_result.jpg`.
@@ -504,8 +504,8 @@ Kết quả trực quan (Bounding Box + Nhãn + Độ tin cậy) sẽ được l
 ```bash
 python scripts/eval/run_xai.py \
   --image path/to/test_image.jpg \
-  --detector weights/detector.pt \
-  --classifier_weights weights/classifier.pth
+  --detector outputs/checkpoints/hybrid_yolov8n_effb0/run1_baseline/weights/best.pt \
+  --classifier_weights outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth
 ```
 Hệ thống sẽ tự cắt ảnh và lưu biểu đồ vào `test_heatmap_gradcam.png`.
 
@@ -516,8 +516,8 @@ Hiển thị trực quan sự khác biệt giữa việc: Truyền thẳng ảnh
 ```bash
 python scripts/eval/ablation_comparison.py \
   --image path/to/test_image.jpg \
-  --detector weights/detector.pt \
-  --classifier_weights weights/classifier.pth
+  --detector outputs/checkpoints/hybrid_yolov8n_effb0/run1_baseline/weights/best.pt \
+  --classifier_weights outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth
 ```
 Kết quả được trình bày cạnh nhau, siêu trực quan tại `ablation_comparison_result.png`.
 
