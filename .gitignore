@@ -77,3 +77,7 @@ kaggle.json
 tmp/
 temp/
 .cache/
+
+# Dùng cho Config Loader
+outputs/logs/*
+!outputs/logs/.gitkeep
