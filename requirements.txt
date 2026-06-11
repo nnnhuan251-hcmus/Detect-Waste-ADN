@@ -1,6 +1,7 @@
 torch
 torchvision
 torchaudio
+grad-cam
 
 ultralytics>=8.2,<9.0
 timm>=1.0,<2.0
