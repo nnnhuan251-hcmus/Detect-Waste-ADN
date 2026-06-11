@@ -1,3 +1,5 @@
+from waste_detection.inference.predictor_base import PredictorBase
+
 from __future__ import annotations
 
 import logging
@@ -33,7 +35,7 @@ class ClassificationPrediction:
         }
 
 
-class ClassifierPredictor:
+class ClassifierPredictor(PredictorBase):
     """
     Predictor cho EfficientNet-B0 classifier.
 
@@ -109,6 +111,29 @@ class ClassifierPredictor:
         crop_images: List[np.ndarray],
     ) -> List[ClassificationPrediction]:
         return [self.predict_one(crop_image) for crop_image in crop_images]
+
+    def predict(self, source, **kwargs):
+        """
+        Cổng predict chung theo PredictorBase.
+    
+        Hỗ trợ:
+        - source là 1 crop numpy array: trả về 1 ClassificationPrediction.
+        - source là list crop numpy arrays: trả về list ClassificationPrediction.
+        - source là đường dẫn ảnh: đọc ảnh và phân loại ảnh đó như một crop.
+        """
+        if isinstance(source, list):
+            return self.predict_batch(source)
+    
+        if isinstance(source, np.ndarray):
+            return self.predict_one(source)
+    
+        image_path = Path(source)
+        image = cv2.imread(str(image_path))
+    
+        if image is None:
+            raise FileNotFoundError(f"Không đọc được ảnh crop: {image_path}")
+    
+        return self.predict_one(image)
 
     def _numpy_to_pil(self, image: np.ndarray) -> Image.Image:
         if image.ndim != 3 or image.shape[2] != 3:
