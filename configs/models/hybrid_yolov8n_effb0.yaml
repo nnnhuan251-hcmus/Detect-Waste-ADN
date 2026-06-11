@@ -39,8 +39,9 @@ classifier:
 
   input_size: 224
   dropout: 0.2
+  batch_size: 32
 
 hybrid_inference:
-  crop_margin: 0.05
+  crop_margin: 0.10
   final_confidence_rule: multiply
   final_confidence_threshold: 0.25
