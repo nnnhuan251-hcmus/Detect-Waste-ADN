@@ -1,3 +1,5 @@
+from waste_detection.training.trainer_base import TrainerBase
+
 from __future__ import annotations
 
 import logging
@@ -14,14 +16,14 @@ from waste_detection.utils.io import IOUtils
 logger = logging.getLogger("DetectorTrainer")
 
 
-class DetectorTrainer:
+class DetectorTrainer(TrainerBase):
     """
     Trainer wrapper cho detector dùng Ultralytics.
 
     Hỗ trợ:
     - YOLOv8n binary detector cho hybrid.
     - YOLOv8s detector-only 7 class.
-    - RT-DETR nếu weight/backend đã xác thực.
+    - RT-DETR-L detector-only 7 class.
     """
 
     def __init__(
