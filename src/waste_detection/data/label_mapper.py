@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import logging
-from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Tuple
@@ -10,49 +11,71 @@ logger = logging.getLogger("TacoLabelMapper")
 
 @dataclass
 class LabelMappingReport:
-    original_num_categories: int = 0
-    target_num_categories: int = 0
-    original_categories: List[str] = field(default_factory=list)
-    target_categories: List[str] = field(default_factory=list)
-    mapped_original_categories: List[str] = field(default_factory=list)
-    ignored_original_categories: List[str] = field(default_factory=list)
-    unmapped_original_categories: List[str] = field(default_factory=list)
-    categories_in_mapping_but_not_dataset: List[str] = field(default_factory=list)
-    num_annotations_before: int = 0
-    num_annotations_after: int = 0
+    """
+    Report sau khi map nhãn COCO gốc về 7 class đích.
+    """
+
+    num_original_categories: int = 0
+    num_target_categories: int = 0
+    num_original_annotations: int = 0
+    num_mapped_annotations: int = 0
     num_ignored_annotations: int = 0
-    distribution_before: Dict[str, int] = field(default_factory=dict)
-    distribution_after: Dict[str, int] = field(default_factory=dict)
+    num_unmapped_annotations: int = 0
+
+    mapped_category_names: Dict[str, str] = field(default_factory=dict)
+    ignored_category_names: List[str] = field(default_factory=list)
+    unmapped_category_names: List[str] = field(default_factory=list)
+
+    old_category_id_to_new_category_id: Dict[int, int] = field(default_factory=dict)
+
+    @property
+    def num_unmapped_categories(self) -> int:
+        return len(set(self.unmapped_category_names))
+
+    @property
+    def num_ignored_categories(self) -> int:
+        return len(set(self.ignored_category_names))
+
+    @property
+    def num_mapped_categories(self) -> int:
+        return len(set(self.mapped_category_names.keys()))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "original_num_categories": self.original_num_categories,
-            "target_num_categories": self.target_num_categories,
-            "original_categories": self.original_categories,
-            "target_categories": self.target_categories,
-            "mapped_original_categories": self.mapped_original_categories,
-            "ignored_original_categories": self.ignored_original_categories,
-            "unmapped_original_categories": self.unmapped_original_categories,
-            "categories_in_mapping_but_not_dataset": self.categories_in_mapping_but_not_dataset,
-            "num_annotations_before": self.num_annotations_before,
-            "num_annotations_after": self.num_annotations_after,
+            "num_original_categories": self.num_original_categories,
+            "num_target_categories": self.num_target_categories,
+            "num_original_annotations": self.num_original_annotations,
+            "num_mapped_annotations": self.num_mapped_annotations,
             "num_ignored_annotations": self.num_ignored_annotations,
-            "distribution_before": self.distribution_before,
-            "distribution_after": self.distribution_after,
+            "num_unmapped_annotations": self.num_unmapped_annotations,
+            "num_mapped_categories": self.num_mapped_categories,
+            "num_ignored_categories": self.num_ignored_categories,
+            "num_unmapped_categories": self.num_unmapped_categories,
+            "mapped_category_names": self.mapped_category_names,
+            "ignored_category_names": sorted(set(self.ignored_category_names)),
+            "unmapped_category_names": sorted(set(self.unmapped_category_names)),
+            "old_category_id_to_new_category_id": self.old_category_id_to_new_category_id,
         }
 
 
 class TacoLabelMapper:
     """
-    Map category gốc của TACO sang 7 class đích.
+    Map category gốc của TACO/COCO về class đích.
 
-    Input:
-    - COCO dataset gốc.
-    - mapping_label.json.
+    mapping_dict format:
+
+    {
+        "plastic": ["Clear plastic bottle", ...],
+        "paper": ["Normal paper", ...],
+        ...
+        "ignore": [...]
+    }
 
     Output:
-    - COCO dataset mới với categories = 7 class.
-    - mapping report để đưa vào báo cáo và debug.
+    - categories được thay bằng 7 class target id 0..6.
+    - annotations được đổi category_id tương ứng.
+    - annotation thuộc ignore sẽ bị bỏ.
+    - category unmapped sẽ raise error nếu fail_on_unmapped=True.
     """
 
     def __init__(
@@ -62,53 +85,144 @@ class TacoLabelMapper:
         ignore_key: str = "ignore",
         fail_on_unmapped: bool = True,
     ) -> None:
-        self.target_class_names = target_class_names
-        self.target_name_to_id = target_name_to_id
+        self.target_class_names = list(target_class_names)
+        self.target_name_to_id = dict(target_name_to_id)
         self.ignore_key = ignore_key
         self.fail_on_unmapped = fail_on_unmapped
+
+        self._validate_target_classes()
 
     def transform(
         self,
         dataset: Dict[str, Any],
         mapping_dict: Dict[str, List[str]],
     ) -> Tuple[Dict[str, Any], LabelMappingReport]:
-        original_categories = dataset.get("categories", [])
-        original_annotations = dataset.get("annotations", [])
+        dataset = deepcopy(dataset)
 
-        category_id_to_name = {
-            category["id"]: category["name"]
-            for category in original_categories
-            if "id" in category and "name" in category
-        }
-
-        reverse_mapping, ignored_names = self._build_reverse_mapping(mapping_dict)
-
-        original_category_names = set(category_id_to_name.values())
-        mapping_category_names = set(reverse_mapping.keys()).union(ignored_names)
-
-        categories_in_mapping_but_not_dataset = sorted(
-            mapping_category_names - original_category_names
-        )
+        categories = dataset.get("categories", [])
+        annotations = dataset.get("annotations", [])
 
         report = LabelMappingReport(
-            original_num_categories=len(original_categories),
-            target_num_categories=len(self.target_class_names),
-            original_categories=sorted(original_category_names),
-            target_categories=list(self.target_class_names),
-            categories_in_mapping_but_not_dataset=categories_in_mapping_but_not_dataset,
-            num_annotations_before=len(original_annotations),
+            num_original_categories=len(categories),
+            num_target_categories=len(self.target_class_names),
+            num_original_annotations=len(annotations),
         )
 
-        distribution_before = Counter()
+        original_name_to_target_name, ignored_names = self._build_reverse_mapping(
+            mapping_dict=mapping_dict,
+        )
 
-        for annotation in original_annotations:
-            category_name = category_id_to_name.get(annotation.get("category_id"))
-            if category_name is not None:
-                distribution_before[category_name] += 1
+        old_category_id_to_name = {
+            int(category["id"]): str(category["name"])
+            for category in categories
+        }
 
-        report.distribution_before = dict(sorted(distribution_before.items()))
+        old_category_id_to_new_category_id: Dict[int, int] = {}
+        ignored_category_ids = set()
+        unmapped_category_names = []
 
-        target_categories = [
+        for old_category_id, original_name in old_category_id_to_name.items():
+            if original_name in ignored_names:
+                ignored_category_ids.add(old_category_id)
+                report.ignored_category_names.append(original_name)
+                continue
+
+            target_name = original_name_to_target_name.get(original_name)
+
+            if target_name is None:
+                unmapped_category_names.append(original_name)
+                report.unmapped_category_names.append(original_name)
+                continue
+
+            new_category_id = self.target_name_to_id[target_name]
+            old_category_id_to_new_category_id[old_category_id] = new_category_id
+            report.mapped_category_names[original_name] = target_name
+            report.old_category_id_to_new_category_id[old_category_id] = new_category_id
+
+        if unmapped_category_names and self.fail_on_unmapped:
+            raise KeyError(
+                "Có category chưa được map. "
+                f"Unmapped categories: {sorted(set(unmapped_category_names))}"
+            )
+
+        new_annotations = []
+
+        for annotation in annotations:
+            old_category_id = int(annotation.get("category_id"))
+
+            if old_category_id in ignored_category_ids:
+                report.num_ignored_annotations += 1
+                continue
+
+            if old_category_id not in old_category_id_to_new_category_id:
+                report.num_unmapped_annotations += 1
+
+                if self.fail_on_unmapped:
+                    original_name = old_category_id_to_name.get(
+                        old_category_id,
+                        f"category_id={old_category_id}",
+                    )
+                    raise KeyError(
+                        f"Annotation id={annotation.get('id')} có category chưa map: "
+                        f"{original_name}"
+                    )
+
+                continue
+
+            new_annotation = deepcopy(annotation)
+            new_annotation["category_id"] = old_category_id_to_new_category_id[
+                old_category_id
+            ]
+
+            new_annotations.append(new_annotation)
+            report.num_mapped_annotations += 1
+
+        dataset["categories"] = self._build_target_categories()
+        dataset["annotations"] = new_annotations
+
+        logger.info(
+            "Label mapping xong: %d mapped annotations, %d ignored, %d unmapped.",
+            report.num_mapped_annotations,
+            report.num_ignored_annotations,
+            report.num_unmapped_annotations,
+        )
+
+        return dataset, report
+
+    def _build_reverse_mapping(
+        self,
+        mapping_dict: Dict[str, List[str]],
+    ) -> tuple[Dict[str, str], set[str]]:
+        original_name_to_target_name: Dict[str, str] = {}
+        ignored_names = set()
+
+        for target_name, original_names in mapping_dict.items():
+            if target_name == self.ignore_key:
+                ignored_names.update(str(name) for name in original_names)
+                continue
+
+            if target_name not in self.target_name_to_id:
+                raise KeyError(
+                    f"Mapping chứa target class không hợp lệ: {target_name}. "
+                    f"Target classes hợp lệ: {self.target_class_names}"
+                )
+
+            for original_name in original_names:
+                original_name = str(original_name)
+
+                if original_name in original_name_to_target_name:
+                    previous_target = original_name_to_target_name[original_name]
+                    raise ValueError(
+                        f"Category '{original_name}' bị map vào nhiều class: "
+                        f"{previous_target} và {target_name}"
+                    )
+
+                original_name_to_target_name[original_name] = target_name
+
+        return original_name_to_target_name, ignored_names
+
+    def _build_target_categories(self) -> List[Dict[str, Any]]:
+        return [
             {
                 "id": self.target_name_to_id[class_name],
                 "name": class_name,
@@ -117,114 +231,21 @@ class TacoLabelMapper:
             for class_name in self.target_class_names
         ]
 
-        new_annotations = []
-        distribution_after = Counter()
-        ignored_annotation_count = 0
-        unmapped_category_names = set()
-        mapped_category_names = set()
-        ignored_category_names = set()
+    def _validate_target_classes(self) -> None:
+        if len(set(self.target_class_names)) != len(self.target_class_names):
+            raise ValueError("target_class_names bị trùng.")
 
-        next_annotation_id = 1
-
-        for annotation in original_annotations:
-            old_category_id = annotation.get("category_id")
-            old_category_name = category_id_to_name.get(old_category_id)
-
-            if old_category_name is None:
-                unmapped_category_names.add(f"<unknown_category_id_{old_category_id}>")
-                continue
-
-            if old_category_name in ignored_names:
-                ignored_annotation_count += 1
-                ignored_category_names.add(old_category_name)
-                continue
-
-            target_class_name = reverse_mapping.get(old_category_name)
-
-            if target_class_name is None:
-                unmapped_category_names.add(old_category_name)
-                continue
-
-            if target_class_name not in self.target_name_to_id:
-                raise KeyError(
-                    f"Target class '{target_class_name}' không nằm trong target_name_to_id."
-                )
-
-            new_annotation = deepcopy(annotation)
-            new_annotation["id"] = next_annotation_id
-            new_annotation["category_id"] = self.target_name_to_id[target_class_name]
-
-            new_annotations.append(new_annotation)
-            distribution_after[target_class_name] += 1
-            mapped_category_names.add(old_category_name)
-            next_annotation_id += 1
-
-        report.num_annotations_after = len(new_annotations)
-        report.num_ignored_annotations = ignored_annotation_count
-        report.distribution_after = dict(sorted(distribution_after.items()))
-        report.mapped_original_categories = sorted(mapped_category_names)
-        report.ignored_original_categories = sorted(ignored_category_names)
-        report.unmapped_original_categories = sorted(unmapped_category_names)
-
-        if report.unmapped_original_categories:
-            logger.warning(
-                "Có %d category gốc chưa được map.",
-                len(report.unmapped_original_categories),
+        if set(self.target_class_names) != set(self.target_name_to_id.keys()):
+            raise ValueError(
+                "target_name_to_id không khớp target_class_names. "
+                f"names={self.target_class_names}, mapping={self.target_name_to_id}"
             )
 
-            for category_name in report.unmapped_original_categories:
-                logger.warning("Unmapped category: %s", category_name)
+        expected_ids = set(range(len(self.target_class_names)))
+        actual_ids = set(self.target_name_to_id.values())
 
-            if self.fail_on_unmapped:
-                raise KeyError(
-                    "Có category gốc chưa được map. "
-                    "Hãy cập nhật configs/data/mapping_label.json. "
-                    f"Unmapped: {report.unmapped_original_categories}"
-                )
-
-        processed_dataset = {
-            "info": deepcopy(dataset.get("info", {})),
-            "licenses": deepcopy(dataset.get("licenses", [])),
-            "images": deepcopy(dataset.get("images", [])),
-            "annotations": new_annotations,
-            "categories": target_categories,
-        }
-
-        logger.info(
-            "Mapping label xong: %d annotations -> %d annotations, %d ignored.",
-            report.num_annotations_before,
-            report.num_annotations_after,
-            report.num_ignored_annotations,
-        )
-
-        return processed_dataset, report
-
-    def _build_reverse_mapping(
-        self,
-        mapping_dict: Dict[str, List[str]],
-    ) -> Tuple[Dict[str, str], set[str]]:
-        reverse_mapping: Dict[str, str] = {}
-        ignored_names: set[str] = set()
-
-        for target_class_name, original_names in mapping_dict.items():
-            if target_class_name == self.ignore_key:
-                ignored_names.update(original_names)
-                continue
-
-            normalized_target_class_name = target_class_name.strip().lower()
-
-            if normalized_target_class_name not in self.target_name_to_id:
-                raise KeyError(
-                    f"Class '{target_class_name}' trong mapping không nằm trong "
-                    f"danh sách class đích: {list(self.target_name_to_id.keys())}"
-                )
-
-            for original_name in original_names:
-                if original_name in reverse_mapping:
-                    raise ValueError(
-                        f"Category gốc '{original_name}' bị map nhiều hơn một lần."
-                    )
-
-                reverse_mapping[original_name] = normalized_target_class_name
-
-        return reverse_mapping, ignored_names
+        if actual_ids != expected_ids:
+            raise ValueError(
+                "target ids phải liên tục từ 0 đến num_classes - 1. "
+                f"Expected={expected_ids}, got={actual_ids}"
+            )
