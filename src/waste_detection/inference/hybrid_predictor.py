@@ -1,5 +1,3 @@
-from waste_detection.inference.predictor_base import PredictorBase
-
 from __future__ import annotations
 
 import logging
@@ -19,6 +17,7 @@ from waste_detection.inference.detector_predictor import (
     DetectionPrediction,
     DetectorPredictor,
 )
+from waste_detection.inference.predictor_base import PredictorBase
 
 
 logger = logging.getLogger("HybridPredictor")
