@@ -1,0 +1,520 @@
+\documentclass[12pt, a4paper]{article}
+
+% --- CẤU HÌNH CƠ BẢN CHO PDFLATEX ---
+\usepackage[utf8]{inputenc}  % Mã hóa file nguồn
+\usepackage[T5]{fontenc}     % Mã hóa font T5 (QUAN TRỌNG NHẤT để hiển thị tiếng Việt đẹp)
+\usepackage[vietnam]{babel}  % Ngắt dòng và quy tắc tiếng Việt
+
+% --- CẤU HÌNH TRANG ---
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{setspace}
+\setstretch{1.3}
+
+% --- GÓI TOÁN & TRÌNH BÀY ---
+\usepackage{amsmath, amssymb}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{array, makecell}
+\usepackage{caption}
+\usepackage{float}
+
+% --- HÌNH ẢNH & ĐỒ HỌA ---
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{
+    positioning,
+    trees,
+    arrows.meta,
+    shapes.geometric,
+    shapes.arrows,
+    shapes.misc
+}
+\usepackage{tabularx}
+
+% --- MÃ NGUỒN (MINTED) ---
+\usepackage{minted}              % Highlight code (cần -shell-escape)
+\usepackage{xcolor}              % Định nghĩa và sử dụng màu
+\usepackage[most]{tcolorbox}     % Tạo box (khung) nâng cao
+\tcbuselibrary{minted}           % Kết hợp tcolorbox với minted
+
+% ---------------- Code Style ----------------
+\newtcblisting{pythoncode}{
+    listing engine=minted,
+    colback=gray!5,              % Màu nền
+    colframe=gray!75,            % Màu viền
+    listing only,
+    breakable,                   % Cho phép xuống trang
+    text engine=line,
+    minted language=python,
+    minted options={
+        linenos,                 % Hiển thị số dòng
+        breaklines,              % Tự xuống dòng
+        autogobble,              % Bỏ indent dư
+        fontsize=\small,
+        tabsize=4
+    },
+    left=5pt,
+    right=5pt,
+    top=5pt,
+    bottom=5pt,
+    enhanced,
+    boxrule=0.5pt,               % Độ dày viền
+    arc=2mm                      % Bo góc
+}
+\newtcblisting{bashcode}{
+    listing engine=minted,
+    colback=gray!5,
+    colframe=gray!75,
+    listing only,
+    breakable,
+    minted language=bash,
+    minted options={
+        linenos=false,           % Thường code terminal không cần số dòng
+        breaklines,
+        autogobble,
+        fontsize=\small,
+        tabsize=4
+    },
+    left=5pt, right=5pt, top=5pt, bottom=5pt,
+    enhanced,
+    boxrule=0.5pt,
+    arc=2mm
+}
+
+% --- HỘP & TÔ MÀU ---
+\tcbuselibrary{listings, skins, breakable}
+
+% --- HEADER & FOOTER ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{} 
+\fancyhead[L]{\fontsize{9pt}{10pt}\selectfont KHOA TOÁN - TIN HỌC}
+\fancyhead[R]{\fontsize{9pt}{10pt}\selectfont HỌC SÂU CHO KHOA HỌC DỮ LIỆU}
+\fancyfoot[C]{\thepage}
+\setlength{\headheight}{14pt}
+
+% --- TÙY CHỌN SECTION ---
+\setcounter{secnumdepth}{3} 
+
+\titleformat{\section}
+    {\normalfont\Large\bfseries}
+    {\thesection.\quad}        
+    {0em}
+    {}
+
+\titleformat{\subsection}
+    {\normalfont\large\bfseries}
+    {\thesubsection.\quad}
+    {0em}
+    {}
+
+\titleformat{\subsubsection}
+    {\normalfont\normalsize\bfseries}
+    {\thesubsubsection.\quad}
+    {0em}
+    {}
+
+% --- SIÊU LIÊN KẾT ---
+\usepackage[hidelinks]{hyperref}
+
+\renewcommand{\refname}{Tài liệu tham khảo}
+
+\begin{document}
+\renewcommand{\figurename}{Hình}
+% =======================================================
+% --- TRANG BÌA ---
+% =======================================================
+\thispagestyle{empty}
+\pagenumbering{gobble}
+
+\begin{center}
+    {\large ĐẠI HỌC QUỐC GIA TP-HCM}\\[5pt]
+    {\large TRƯỜNG ĐẠI HỌC KHOA HỌC TỰ NHIÊN}\\[15pt]
+    
+    {\bfseries\large KHOA TOÁN – TIN HỌC}\\[10pt]
+    
+    \rule{\textwidth}{0.8pt}\\[25pt]
+    
+    % Môn học ở dòng trên, tên đồ án ở dòng dưới - Bỏ khung
+    {\Large \textbf{Môn học: Học Sâu cho Khoa Học Dữ Liệu}}\\[15pt]
+    {\Huge \textbf{Object Detection cho Phân loại rác thải}}
+    
+    \par\vspace{20pt}
+    \rule{\textwidth}{0.4pt}\\[20pt]
+\end{center}
+
+% --- LOGO ---
+\begin{center}
+    % \includegraphics[width=3.5cm]{logo.png}  % Bỏ comment nếu có logo
+\end{center}
+
+% --- THÔNG TIN NHÓM ---
+\begin{center}
+\vspace{1.0cm}
+\large\textbf{Giảng viên:} Hà Minh Tuấn
+
+\vspace{2.5em}
+
+    {\large \textbf{Nhóm ADN 10 điểm}}
+    \par\vspace{1em}
+    
+    \textbf{Thành viên thực hiện:}
+    \par\vspace{0.5em}
+    
+    \begin{tabular}{ll}
+    \toprule 
+    \textbf{Họ và Tên} & \textbf{MSSV} \\
+    \midrule 
+    Nguyễn Ngọc Như An & 23280013 \\
+    Nguyễn Yến Nhi & 23280031 \\
+    Nguyễn Hoàng Anh Duy & 23280051 \\
+    \bottomrule 
+    \end{tabular}
+\end{center}
+
+% --- CHÂN TRANG ---
+\begin{center} 
+    \vfill 
+    \textbf{TP. Hồ Chí Minh, Ngày 13 tháng 06 năm 2026}
+\end{center}
+
+\newpage
+% =======================================================
+% --- BẢNG PHÂN CÔNG CHỈNH SỬA ---
+% =======================================================
+\begin{center}
+    {\textbf{BẢNG PHÂN CÔNG NHIỆM VỤ VÀ ĐÁNH GIÁ THÀNH VIÊN}\par}
+    \vspace{0.4cm}
+    \footnotesize
+    \renewcommand{\arraystretch}{1.4} 
+    \begin{tabularx}{\textwidth}{| >{\centering\arraybackslash}p{0.8cm} | c | >{\raggedright\arraybackslash}p{2.2cm} | >{\raggedright\arraybackslash}p{3.2cm} | >{\centering\arraybackslash}p{1.8cm} | >{\raggedright\arraybackslash}X | >{\centering\arraybackslash}p{1.4cm} |}
+        \hline
+        \textbf{STT} & \textbf{MSSV} & \textbf{Họ và tên} & \textbf{Email} & \textbf{Vai trò} & \textbf{Nhiệm vụ} & \textbf{Đánh giá} \\
+        \hline
+        1 & 23280013 & Nguyễn Ngọc Như An & 23280013@\newline student.hcmus.edu.vn & Nhóm trưởng & Phân tích hệ thống, thiết kế kiến trúc và huấn luyện mô hình Object Detection. & 100\% \\
+        \hline
+        2 & 23280031 & Nguyễn Yến Nhi & 23280031@\newline student.hcmus.edu.vn & Thành viên & Thu thập, tiền xử lý và gán nhãn tập dữ liệu rác thải; soạn thảo báo cáo. & 100\% \\
+        \hline
+        3 & 23280051 & Nguyễn Hoàng Anh Duy & 23280051@\newline student.hcmus.edu.vn & Thành viên & Phát triển ứng dụng Web giao diện minh họa và tích hợp mô hình kiểm thử thực tế. & 100\% \\
+        \hline
+    \end{tabularx}
+\end{center}
+\newpage
+
+% =======================================================
+% --- MỤC LỤC ---
+% =======================================================
+\pagenumbering{roman} 
+\renewcommand{\contentsname}{Mục lục}
+\begingroup
+    \pagestyle{empty} 
+    \tableofcontents
+    \thispagestyle{empty} 
+\endgroup
+
+\newpage
+\pagenumbering{arabic} 
+
+\section{Giới thiệu bài toán Phát hiện và Phân loại rác thải}
+
+\subsection{Bối cảnh và Đặt vấn đề}
+Sự gia tăng không ngừng của lượng rác thải rắn đang đặt ra một thách thức nghiêm trọng đối với môi trường toàn cầu. Việc phân loại rác tại nguồn thủ công tốn rất nhiều thời gian và chi phí, do đó, ứng dụng trí tuệ nhân tạo (AI) vào việc tự động hóa quy trình này đang trở thành một xu hướng thiết yếu. Tuy nhiên, bài toán phát hiện và phân loại rác thải (Waste Detection and Classification) trong môi trường thực tế (in the wild) khác biệt hoàn toàn so với các bài toán nhận diện vật thể thông thường do những đặc thù sau:
+
+\begin{itemize}
+    \item \textbf{Nhiễu hậu cảnh (Background Clutter):} Rác thải thường bị vứt lẫn vào cỏ, bùn đất, nước, hoặc nằm chung với các vật thể không phải rác, khiến việc trích xuất đặc trưng hình học trở nên vô cùng khó khăn.
+    \item \textbf{Tính biến dạng cao (High Intra-class Variance):} Cùng là một chai nhựa (Plastic), nhưng nó có thể ở trạng thái nguyên vẹn, bị bóp méo, bị dẹp nát hoặc dính bẩn.
+    \item \textbf{Vật thể bị che khuất (Occlusion):} Rác thường nằm chồng lên nhau hoặc bị các yếu tố môi trường che lấp một phần.
+\end{itemize}
+
+Các mô hình học sâu một giai đoạn (One-stage Object Detectors) kiểu End-to-End truyền thống như họ YOLO hoặc RT-DETR thường có xu hướng gộp chung việc định vị tọa độ (Localization) và phân loại nhãn (Classification) vào cùng một hàm mất mát (Loss Function). Khi đối mặt với dữ liệu rác thải phức tạp, việc này dẫn đến hiện tượng mô hình học lầm các đặc trưng của "hậu cảnh" thay vì đặc trưng của rác, làm giảm mạnh độ chính xác phân loại.
+
+\subsection{Phương pháp tiếp cận và Chiến lược đánh giá (Ablation Study)}
+Để giải quyết bài toán và chứng minh tính hiệu quả của phương pháp xử lý nhiễu hậu cảnh, đồ án thiết kế hệ thống theo định hướng khung làm việc mở (Modular Framework). Hệ thống cho phép linh hoạt thử nghiệm và thay thế nhiều kiến trúc lõi khác nhau qua hai luồng tiếp cận chính nhằm mục đích đối sánh (Ablation Study):
+
+\textbf{1. Luồng mô hình cơ sở End-to-End (Baselines):} 
+Nhóm triển khai thử nghiệm diện rộng nhiều họ kiến trúc Object Detection tiên tiến nhất, trải dài từ các mạng nơ-ron tích chập (như họ YOLOv8, YOLOv9 ở các quy mô từ Nano, Small đến Large) cho đến các kiến trúc phức tạp dựa trên cơ chế chú ý (Attention) như mạng Transformer (tiêu biểu là RT-DETR). Các mô hình này được huấn luyện trực tiếp để vừa định vị tọa độ vừa phân loại 7 nhóm rác, đóng vai trò là thang đo chuẩn (Baseline) cho phương pháp nhận diện một bước.
+
+\textbf{2. Luồng Kiến trúc Lai đề xuất (Proposed Hybrid Pipeline):} 
+Đây là hạt nhân nghiên cứu của đồ án, đề xuất cắt rời hoàn toàn bài toán thành hai giai đoạn độc lập:
+\begin{itemize}
+    \item \textit{Giai đoạn 1 (Localization - Khoanh vùng):} Sử dụng các mô hình dò tìm (tiêu biểu như YOLOv8n) được huấn luyện ở chế độ \textit{Binary Waste} (chỉ tìm nhãn duy nhất là "Rác"). Việc rũ bỏ gánh nặng phân loại nhiều nhãn giúp các mạng này đóng vai trò như một bộ lọc (Region Proposal) siêu nhạy, đạt mức độ truy hồi (Recall) tối đa.
+    \item \textit{Giai đoạn 2 (Classification - Phân loại chi tiết):} Khu vực rác thu được từ Giai đoạn 1 sẽ được hệ thống cắt (Crop) ra khỏi ảnh gốc thông qua cơ chế \texttt{CropDatasetBuilder}, giúp triệt tiêu đến $90\%$ thông tin hậu cảnh thừa. Mảnh ảnh Crop mang độ nhiễu cực thấp này sau đó được đưa qua các mạng nơ-ron phân loại hình ảnh chuyên dụng (tiêu biểu như họ EfficientNet, ResNet, hoặc MobileNet) để dự đoán nhãn cụ thể.
+\end{itemize}
+
+Nhờ kiến trúc module hóa, đồ án có thể dễ dàng hoán đổi mạng Detector ở Giai đoạn 1 và mạng Classifier ở Giai đoạn 2 mà không làm phá vỡ cấu trúc toàn bộ hệ thống. 
+
+Cơ sở toán học của phương pháp Hybrid được thể hiện qua công thức \textbf{Hợp nhất độ tin cậy (Multiply Rule)}. Giả sử ảnh đầu vào là $I$, xác suất vật thể $O$ thuộc lớp $C_i$ được tính bằng:
+\begin{equation}
+P(C_i | I) = P(\text{Waste} | I)_{Detector} \times P(C_i | \text{Waste})_{Classifier}
+\end{equation}
+Hệ thống chỉ chấp nhận kết quả khi cả hai thành phần đều đưa ra dự đoán độc lập vượt ngưỡng Threshold. Việc hoán vị và thử nghiệm hàng loạt kiến trúc mô hình giữa hai luồng Hybrid và Baseline sẽ giúp tìm ra cấu hình tối ưu nhất, cũng như chứng minh một cách thuyết phục bằng thực nghiệm giá trị của việc cô lập đặc trưng rác khỏi hậu cảnh.
+
+\section{Dữ liệu và Đường ống Tiền xử lý (Data and Preprocessing Pipeline)}
+Chất lượng của một hệ thống Học sâu phụ thuộc trực tiếp vào dữ liệu. Đồ án sử dụng cơ chế Huấn luyện nối tiếp trên hai luồng dữ liệu riêng biệt nhằm tối ưu hóa khả năng tổng quát hóa (Generalization) và thích nghi miền (Domain Adaptation).
+
+\subsection{Tổng quan về Bộ dữ liệu}
+
+\subsubsection{Bộ dữ liệu nền tảng TACO (Trash Annotations in Context)}
+TACO là bộ dữ liệu mở chuẩn mực nhất hiện nay trong nghiên cứu nhận diện rác thải. Nó chứa khoảng 1.500 bức ảnh với hơn 4.700 vật thể được gán nhãn chi tiết. Điểm mạnh của TACO là rác thải được thu thập trong các môi trường sống thực tế: trên bãi biển, trong rừng, trên vỉa hè thay vì được chụp trên nền trắng studio.
+
+Tuy nhiên, TACO tồn tại một điểm yếu lớn đối với bài toán phân loại: Hệ thống nhãn quá phân mảnh. TACO định nghĩa tới 60 phân lớp (ví dụ: \textit{Clear plastic bottle}, \textit{Other plastic bottle}, \textit{Plastic film}), dẫn đến sự mất cân bằng dữ liệu nghiêm trọng (Class Imbalance).
+
+\subsubsection{Dữ liệu thực tế (Roboflow) và Bài toán Domain Adaptation}
+Dù TACO cung cấp đặc trưng nền tảng rất tốt, việc ứng dụng mô hình vào một môi trường địa phương (ví dụ: bãi rác tại Việt Nam hoặc camera trên thùng rác thông minh cụ thể) đòi hỏi mô hình phải làm quen với ánh sáng và bối cảnh tại đó.
+
+Đồ án tích hợp bộ \texttt{import\_roboflow\_coco.py} để dễ dàng tải về các bộ dữ liệu COCO từ nền tảng Roboflow. Kiến trúc cho phép tiến hành \textbf{Fine-tuning}: Nạp trọng số tri thức đã học từ TACO và huấn luyện nối tiếp trên tập dữ liệu Roboflow. Điều này giúp mô hình đạt độ chính xác cao nhất ở bối cảnh triển khai mà không cần huấn luyện lại từ đầu.
+
+\subsection{Kiến trúc Đường ống Tiền xử lý (ETL Pipeline Architecture)}
+Đường ống tiền xử lý dữ liệu (ETL - Extract, Transform, Load) trong dự án được thiết kế theo hướng hướng đối tượng (Object-Oriented Programming - OOP). Các thành phần được phân lớp (module hóa) nhằm đảm bảo tính tái sử dụng, dễ dàng bảo trì và tự động hóa cao để cung cấp dữ liệu sạch cho quá trình huấn luyện của cả hai giai đoạn. 
+
+Hệ thống được vận hành bởi các kịch bản điều phối (Orchestration Scripts) nằm trong thư mục \texttt{scripts/data/}, tiêu biểu là \texttt{prepare\_taco.py}. Kịch bản này liên kết các mô-đun lõi theo trình tự: Đọc dữ liệu COCO $\rightarrow$ Ánh xạ nhãn $\rightarrow$ Chuẩn hóa Bounding Box $\rightarrow$ Phân chia tập dữ liệu $\rightarrow$ Xuất định dạng YOLO $\rightarrow$ Cắt vùng ảnh phân loại.
+
+\subsubsection{Đọc và Kiểm định Dữ liệu}
+Quá trình này được quản lý bởi hai lớp chính:
+\begin{itemize}
+    \item \textbf{\texttt{coco\_reader.py}:} Quản lý việc đọc tập tin \texttt{annotations.json} theo định dạng COCO. Lớp này cung cấp cấu trúc dữ liệu Dictionary trong Python, xây dựng các bảng ánh xạ và thống kê phân phối hình ảnh.
+    \item \textbf{\texttt{coco\_validator.py}:} Mô-đun kiểm định tính toàn vẹn của dữ liệu. Thực hiện xác thực cấu trúc JSON, đảm bảo không thiếu trường thông tin bắt buộc, kiểm tra tính duy nhất của ID và xác minh tính hợp lệ của tọa độ Bounding Box.
+\end{itemize}
+
+\subsubsection{Tiền xử lý và Chiến lược Gộp nhãn (Label Mapping Strategy)}
+Để giải quyết sự phân mảnh của tập dữ liệu TACO gốc và đưa bài toán về mức độ khả thi để triển khai thực tế, mô-đun \textbf{\texttt{label\_mapper.py}} được tích hợp để đồng nhất hóa không gian nhãn. Lớp \texttt{TacoLabelMapper} ánh xạ 60 lớp nhãn nguyên thủy của TACO về \textbf{7 nhóm nhãn mục tiêu}:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|p{8cm}|}
+\hline
+\textbf{Nhãn mục tiêu} & \textbf{ID} & \textbf{Các lớp TACO gốc (Ví dụ minh họa)} \\
+\hline
+\texttt{plastic} & 0 & Clear plastic bottle, Plastic bag, Plastic film, Styrofoam piece \\
+\hline
+\texttt{paper} & 1 & Corrugated carton, Normal paper, Paper cup \\
+\hline
+\texttt{metal} & 2 & Aluminum can, Scrap metal, Aerosol \\
+\hline
+\texttt{glass} & 3 & Glass bottle, Broken glass \\
+\hline
+\texttt{organic} & 4 & Apple core, Banana peel, Food waste \\
+\hline
+\texttt{cigarette} & 5 & Cigarette, Unlabeled litter (nếu định hình là tàn thuốc) \\
+\hline
+\texttt{other} & 6 & Battery, Shoe, Cloth, Mixed trash \\
+\hline
+\end{tabular}
+\caption{Bảng ánh xạ từ 60 nhãn TACO sang 7 nhãn chuẩn của đồ án}
+\end{table}
+
+\subsubsection{Chuẩn hóa Bounding Box (BBox Sanitization)}
+Đối phó với tình trạng chú thích lỗi từ dữ liệu thô, lớp \textbf{\texttt{bbox\_sanitizer.py}} thực hiện xử lý các Bounding Box có kích thước hoặc tọa độ sai lệch. Mô-đun này giới hạn (clamp) tọa độ Bounding Box sao cho hoàn toàn nằm trong kích thước thực của bức ảnh và loại bỏ những Bounding Box có diện tích nhỏ hơn ngưỡng tối thiểu cho phép.
+
+\subsubsection{Phân chia Tập Dữ liệu (Stratified Splitting)}
+Mô-đun \textbf{\texttt{coco\_splitter.py}} phân chia tập dữ liệu thành các tập Huấn luyện (Train), Thẩm định (Val) và Kiểm thử (Test). Mô-đun này tích hợp thuật toán \texttt{MultilabelStratifiedShuffleSplit}. Kỹ thuật này giúp giải quyết bài toán mất cân bằng dữ liệu trong phát hiện vật thể đa nhãn (Multi-label Object Detection), đảm bảo tỷ lệ phân phối nhãn đồng đều trên cả 3 tập dữ liệu do tính chất một bức ảnh có thể chứa nhiều lớp vật thể khác nhau.
+
+\subsubsection{Kỹ thuật Tăng cường Dữ liệu (Offline Augmentation)}
+Hệ thống sử dụng \textbf{\texttt{orthogonal\_augmenter.py}} để tính toán hình học nhằm biến đổi đồng thời hình ảnh và tọa độ Bounding Box khi thực hiện các phép xoay trực giao (90, 180, 270 độ). Điều này đảm bảo chú thích vẫn giữ độ chính xác sau phép biến đổi không gian, giúp mở rộng đa dạng hóa tập huấn luyện mà không làm sai lệch vị trí vật thể.
+
+\subsubsection{Xuất Định dạng và Kỹ thuật Cắt ảnh Ngữ cảnh (Contextual Cropping)}
+Kết thúc quy trình tiền xử lý, dữ liệu được phân nhánh cho hai tác vụ khác biệt:
+\begin{itemize}
+    \item \textbf{Định vị vùng ảnh (\texttt{yolo\_converter.py}):} Chuyển đổi định dạng chú thích từ tọa độ tuyệt đối của COCO sang tọa độ tương đối của YOLO, hỗ trợ song song cho bài toán 7 lớp và bài toán nhị phân phục vụ Giai đoạn 1.
+    \item \textbf{Phân loại ảnh thu nhỏ (\texttt{crop\_builder.py}):} Khi cắt ảnh từ mạng Detector đưa vào Classifier, nếu cắt sát viền Bounding Box, mô hình CNN có thể mất đi thông tin cấu trúc vật lý ở mép rác. Do đó, lớp \texttt{CropDatasetBuilder} được cài đặt tính năng \textbf{Mở rộng lề (Padding Margin)}. Hệ thống tự động nới rộng thêm 10\% kích thước Bounding Box về mọi hướng. Kết quả đầu ra là các ảnh thu nhỏ loại bỏ được hậu cảnh nhiễu nhưng vẫn giữ lại biên cạnh của rác, giúp mạng phân loại trích xuất đặc trưng chính xác hơn cho Giai đoạn 2.
+\end{itemize}
+
+\section{Kiến trúc dự án (Mã nguồn và Cấu trúc thư mục)}
+Hệ thống được thiết kế theo kiến trúc \textbf{Modular Configuration} (Cấu hình lắp ghép module) chuẩn doanh nghiệp, tách biệt hoàn toàn giữa Logic mã nguồn, Dữ liệu và Tham số thực nghiệm. Nhằm đảm bảo tính minh bạch và dễ dàng bàn giao (Reproducibility), toàn bộ mã nguồn được chia tách thành các phân hệ chức năng riêng biệt. 
+
+Dưới đây là kiến trúc thư mục chi tiết của dự án bao gồm toàn bộ các kịch bản chạy (Scripts) và mã nguồn lõi (Core source):
+
+\begin{tcolorbox}[colback=gray!5!white, colframe=gray!50!black, title=Cấu trúc cây thư mục chi tiết dự án ADN\_pipeline, breakable]
+\footnotesize
+\begin{verbatim}
+ADN_PIPELINE/
+|-- pyproject.toml                 # Đóng gói dự án thành package
+|-- requirements.txt               # Thư viện phụ thuộc
+|-- README.md                      # Tài liệu hướng dẫn sử dụng
+|-- report.tex                     # Mã nguồn báo cáo LaTeX
+|
+|-- configs/                       # Thư mục chứa cấu hình YAML/JSON
+|   |-- data/                      
+|   |   |-- mapping_label.json     # Ánh xạ 60 nhãn TACO sang 7 nhãn
+|   |   `-- taco_7class.yaml       # Đường dẫn dữ liệu chuẩn YOLO
+|   |-- experiments/               # Cấu hình siêu tham số
+|   |   |-- run1_baseline.yaml         # Cấu hình huấn luyện chuẩn
+|   |   |-- run2_strong_aug.yaml       # Tăng cường dữ liệu
+|   |   `-- run3_freeze_cosine_warmup.yaml # Fine-tuning nâng cao
+|   `-- models/                    # Cấu hình kiến trúc mạng
+|       |-- hybrid_yolov8n_effb0.yaml  # Mô hình Lai (YOLOv8n+EffNet)
+|       |-- rtdetr_l.yaml              # Mô hình RT-DETR đối sánh
+|       `-- yolov8s.yaml               # Mô hình YOLO đối sánh
+|
+|-- scripts/                       # Kịch bản chạy độc lập (CLI)
+|   |-- auto_download_taco.py      # Tải tự động TACO
+|   |-- easy_infer.py              # Chạy suy luận siêu tốc
+|   |-- data/                      # Xử lý dữ liệu (ETL)
+|   |   |-- prepare_taco.py              # Khởi chạy luồng ETL
+|   |   |-- import_roboflow_coco.py      # Kéo dữ liệu Roboflow
+|   |   |-- convert_coco_to_yolo.py      # Chuyển đổi COCO -> YOLO
+|   |   |-- create_crop_dataset.py       # Cắt ảnh rác cho CNN
+|   |   |-- build_label_mapping.py       # Sinh JSON ánh xạ nhãn
+|   |   |-- apply_orthogonal_augmentation.py # Tiền xử lý góc xoay
+|   |   |-- check_coco.py                # Kiểm tra file COCO
+|   |   `-- split_coco.py                # Chia Train/Val/Test
+|   |-- eval/                      # Đánh giá mô hình
+|   |   |-- ablation_comparison.py       # Xuất ảnh đối sánh
+|   |   |-- run_xai.py                   # Chạy XAI (Grad-CAM)
+|   |   |-- evaluate_hybrid.py           # Chấm điểm Hybrid
+|   |   |-- evaluate_detector.py         # Chấm điểm Detector
+|   |   `-- evaluate_classifier.py       # Chấm điểm Classifier
+|   |-- infer/
+|   |   `-- infer_image.py               # Chạy suy luận API
+|   `-- train/                     # Huấn luyện tự động
+|       |-- run_ablation.py              # Train hàng loạt
+|       |-- train_detector.py            # Train Detector
+|       `-- train_classifier.py          # Train Classifier
+|
+|-- src/waste_detection/           # Mã nguồn lõi (OOP Core)
+|   |-- config/                    # Tải và kiểm duyệt cấu hình
+|   |   |-- config_loader.py       
+|   |   `-- schemas.py
+|   |-- data/                      # Module thao tác dữ liệu
+|   |   |-- bbox_sanitizer.py            # Sửa Bbox lỗi
+|   |   |-- coco_reader.py               # Parse COCO Json
+|   |   |-- crop_builder.py              # Cắt ảnh động
+|   |   |-- crop_dataset.py              # PyTorch Dataset
+|   |   |-- label_mapper.py              # Logic gộp nhãn
+|   |   `-- transforms.py                # Biến đổi ảnh (Aug)
+|   |-- evaluation/                # Đo đạc chỉ số (Metrics)
+|   |   |-- classification_metrics.py    # Đo F1, Accuracy
+|   |   |-- detection_metrics.py         # Đo mAP
+|   |   `-- grad_cam.py                  # Thuật toán Grad-CAM
+|   |-- inference/                 # API dự đoán
+|   |   |-- hybrid_predictor.py          # Ghép nối Detector & Classifier
+|   |   |-- classifier_predictor.py
+|   |   `-- detector_predictor.py
+|   |-- models/                    # Wrapper cho DL Models
+|   |   |-- efficientnet_classifier.py
+|   |   |-- yolov8_detector.py
+|   |   `-- hybrid_model.py
+|   |-- training/                  # Vòng lặp huấn luyện
+|   |   |-- classifier_trainer.py        # Train CNN
+|   |   |-- detector_trainer.py          # Gọi API Ultralytics
+|   |   |-- losses.py                    # Focal Loss, CE
+|   |   `-- schedulers.py                # Cosine Annealing LR
+|   |-- utils/                     # Tiện ích chung
+|   |   |-- io.py                        # Ghi/Đọc an toàn
+|   |   `-- logger.py                    # Cấu hình logging
+|   `-- visualization/             # Trực quan hóa
+|       |-- draw_boxes.py                # Vẽ Box lên ảnh
+|       |-- gradcam.py                   # Render Heatmap
+|       `-- plot_curves.py               # Vẽ biểu đồ
+|
+|-- outputs/                       # Kết quả đầu ra (Auto)
+|   |-- checkpoints/               # Trọng số (.pt, .pth)
+|   |-- figures/                   # Ảnh từ eval
+|   |-- logs/                      # Log huấn luyện
+|   `-- metrics/                   # JSON điểm số
+|
+`-- tests/                         # Unit Test (PyTest)
+    |-- test_bbox_clamp.py         # Test chống tràn khung
+    |-- test_crop_builder.py       # Test module cắt
+    `-- test_label_mapping.py      # Test ánh xạ nhãn
+\end{verbatim}
+\end{tcolorbox}
+
+\section{Hướng dẫn triển khai và Các công cụ phân tích}
+
+\subsection{Hướng dẫn triển khai End-to-End trên Kaggle}
+Dự án được tối ưu hóa để chạy trực tiếp trên môi trường Kaggle Notebook nhằm tận dụng sức mạnh GPU (P100/T4). Các bước thực hiện tuần tự như sau:
+
+\vspace{0.5cm}
+
+\noindent\textbf{Bước 1: Khởi tạo và thiết lập thư viện}
+\begin{itemize}
+    \setlength{\itemsep}{2pt} 
+    \item Clone nhánh mã nguồn chứa tích hợp Hybrid Pipeline và cài đặt dự án như một gói Python cục bộ. Biến môi trường \texttt{PYTHONPATH} bắt buộc phải được trỏ vào \texttt{src} để hệ thống nhận diện các module.
+\end{itemize}
+\begin{bashcode}
+!git clone -b feature/our-pipeline-integration https://github.com/realer23kdl/Waste-Detection-and-Classification.git
+%cd Waste-Detection-and-Classification
+!pip install -r requirements.txt
+!pip install kagglehub roboflow
+!pip install -e .
+\end{bashcode}
+
+\vspace{0.3cm} 
+
+\noindent\textbf{Bước 2: Chuẩn bị Dữ liệu TACO tự động}
+\begin{itemize}
+    \item Sử dụng \texttt{kagglehub} để tải bộ TACO và khởi chạy "Nhà máy xử lý dữ liệu" (\texttt{prepare\_taco.py}). Script này sẽ sinh ra dữ liệu chuẩn YOLO và cắt hàng ngàn ảnh Crop cho mạng CNN.
+\end{itemize}
+\begin{bashcode}
+!PYTHONPATH=src python scripts/data/prepare_taco.py
+\end{bashcode}
+
+\vspace{0.3cm}
+
+\noindent\textbf{Bước 3: Huấn luyện kiến trúc Hybrid (Training)}
+\begin{itemize}
+    \setlength{\itemsep}{4pt}
+    \item Truyền các module cấu hình thông qua \texttt{argparse}. Việc thay đổi số Epochs hay Learning Rate được thực hiện trực tiếp bằng cách ghi đè file YAML trong thư mục \texttt{configs/experiments/}.
+\end{itemize}
+\begin{bashcode}
+# Huấn luyện tác vụ khoanh vùng rác (YOLOv8n)
+!PYTHONPATH=src python scripts/train/train_detector.py \
+  --data-config configs/data/taco_7class.yaml \
+  --model-config configs/models/hybrid_yolov8n_effb0.yaml \
+  --experiment-config configs/experiments/run1_baseline.yaml
+
+# Huấn luyện tác vụ phân loại (EfficientNet-B0)
+!PYTHONPATH=src python scripts/train/train_classifier.py \
+  --data-config configs/data/taco_7class.yaml \
+  --model-config configs/models/hybrid_yolov8n_effb0.yaml \
+  --experiment-config configs/experiments/run1_baseline.yaml
+\end{bashcode}
+
+\subsection{Các công cụ phân tích và Giải thích mô hình (XAI)}
+Để đánh giá sâu về hiệu năng, hệ thống cung cấp các bộ script phân tích độc lập:
+
+\begin{itemize}
+    \item \textbf{Ablation Comparison (\texttt{ablation\_comparison.py}):} Chạy song song hai luồng suy luận trên cùng một bức ảnh (Phân loại toàn ảnh VS Phân loại qua Crop của YOLO) và xuất ra biểu đồ so sánh cạnh nhau.
+    \item \textbf{AI Giải thích - XAI (\texttt{run\_xai.py}):} Sử dụng thuật toán Grad-CAM (Gradient-weighted Class Activation Mapping) trích xuất đạo hàm từ lớp Convolution cuối cùng của EfficientNet-B0. Hệ thống sinh ra \textbf{Bản đồ nhiệt (Heatmap)} chồng lên ảnh gốc, giúp quan sát trực quan việc AI đang "tập trung" vào khu vực nào của cục rác để đưa ra quyết định.
+\end{itemize}
+
+\section{Tổng kết và Đánh giá}
+
+\subsection{Kết quả đạt được và Ưu điểm}
+Sau quá trình huấn luyện và đánh giá trên tập Test, kiến trúc Hybrid cho thấy sự vượt trội rõ rệt so với các mô hình End-to-End:
+\begin{itemize}
+    \setlength{\itemsep}{3pt}
+    \item \textbf{Khử nhiễu hậu cảnh hiệu quả:} Bằng cách loại bỏ 90\% hậu cảnh không liên quan thông qua bước cắt ảnh của Detector, mạng Classifier không bị đánh lừa bởi môi trường xung quanh, giúp chỉ số \textit{Macro F1} tăng đáng kể.
+    \item \textbf{Tính module hóa cao:} Dễ dàng thay thế mạng Classifier (ví dụ nâng cấp từ EfficientNet-B0 lên B4) mà không cần phải huấn luyện lại mạng Detector.
+    \item \textbf{Tính minh bạch (Explainability):} Bản đồ nhiệt Grad-CAM chứng minh mô hình hoạt động dựa trên đặc trưng hình học của vật thể chứ không học vẹt.
+\end{itemize}
+
+\subsection{Hạn chế tồn tại}
+\begin{itemize}
+    \setlength{\itemsep}{3pt}
+    \item \textbf{Tốc độ Suy luận (Inference Time):} Vì là hệ thống hai giai đoạn (Two-stage), tốc độ FPS thấp hơn so với việc chạy kiến trúc một giai đoạn (One-stage End-to-End).
+    \item \textbf{Phụ thuộc vào giai đoạn 1:} Nếu luồng Detector khoanh vùng sai hoặc trượt vật thể, mạng Classifier sẽ không có cơ hội sửa sai ở giai đoạn 2.
+\end{itemize}
+
+\newpage
+\begin{thebibliography}{99}
+    \addcontentsline{toc}{section}{Tài liệu tham khảo}
+    
+    \bibitem{taco_dataset}
+    P. Proença and P. Simões, ``TACO: Trash Annotations in Context for Litter Detection,'' \textit{arXiv preprint arXiv:2003.06975}, 2020.
+    
+    \bibitem{yolov8_ultralytics}
+    Ultralytics, \textit{YOLOv8 Documentation}. [Online]. Available: \url{https://docs.ultralytics.com/}. [Truy cập: 11-06-2026].
+
+    \bibitem{efficientnet_paper}
+    M. Tan and Q. V. Le, ``EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks,'' \textit{International Conference on Machine Learning (ICML)}, 2019.
+    
+    \bibitem{grad_cam}
+    R. R. Selvaraju et al., ``Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization,'' \textit{International Journal of Computer Vision}, vol. 128, no. 2, pp. 336-359, 2020.
+
+    \bibitem{roboflow_docs}
+    Roboflow Inc., \textit{Roboflow Computer Vision Platform}. [Online]. Available: \url{https://roboflow.com/}. [Truy cập: 11-06-2026].
+\end{thebibliography}
+
+\end{document}

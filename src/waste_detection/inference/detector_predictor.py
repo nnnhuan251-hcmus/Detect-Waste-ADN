@@ -37,6 +37,24 @@ class DetectorPredictor(PredictorBase):
     - RT-DETR-L detector-only
     """
 
+    def __init__(
+        self,
+        weights_path: str | Path,
+        detector_name: str = "yolov8n",
+        family: str | None = None,
+        confidence_threshold: float = 0.25,
+        iou_threshold: float = 0.50,
+        max_detections: int = 300,
+    ) -> None:
+        self.weights_path = Path(weights_path)
+        self.detector_name = detector_name.lower()
+        self.family = family.lower() if family else ""
+        self.confidence_threshold = confidence_threshold
+        self.iou_threshold = iou_threshold
+        self.max_detections = max_detections
+
+        self.detector = self._build_detector()
+
     def predict(self, source, **kwargs):
         results = self.detector.predict(
             source=source,
