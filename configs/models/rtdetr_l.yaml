@@ -29,4 +29,5 @@ detector:
 
 training_backend:
   preferred_backend: ultralytics
+  batch_size_hint: 4
   note: "Using RT-DETR-L pretrained weights because RT-DETR-R18 pretrained weight is not verified in Ultralytics."
