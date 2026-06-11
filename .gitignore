@@ -1,83 +1,114 @@
-# Python
+# ============================================================
+# Python cache / build
+# ============================================================
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
+*$py.class
 *.so
+*.egg
 *.egg-info/
 .eggs/
 build/
 dist/
+site/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
+# ============================================================
 # Virtual environments
+# ============================================================
 .venv/
 venv/
 env/
 ENV/
-
-# Jupyter
+conda/
 .ipynb_checkpoints/
 
-# IDE
+# ============================================================
+# IDE / OS
+# ============================================================
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Environment variables
+# ============================================================
+# Environment / secrets
+# ============================================================
 .env
 .env.*
+*.env
+secrets/
+kaggle.json
 
+# ============================================================
 # Data
+# Do not commit raw datasets or generated processed datasets.
+# ============================================================
 data/raw/
-data/interim/*
-data/processed/*
+data/interim/
+data/processed/
+data/external/
+datasets/
 
-# Keep directory structure
-!data/interim/.gitkeep
-!data/processed/coco_7class/.gitkeep
-!data/processed/yolo_7class/.gitkeep
-!data/processed/yolo_binary_waste/.gitkeep
-!data/processed/crops_7class/.gitkeep
+# Keep data folder structure if needed
+!data/
+!data/README.md
 
-# Outputs
-outputs/checkpoints/*
-outputs/metrics/*
-outputs/predictions/*
-outputs/figures/*
-outputs/wandb/*
-
-!outputs/checkpoints/.gitkeep
-!outputs/metrics/.gitkeep
-!outputs/predictions/.gitkeep
-!outputs/figures/.gitkeep
-!outputs/wandb/.gitkeep
-
-# Weights & Biases
+# ============================================================
+# Outputs / experiments
+# ============================================================
+outputs/
+runs/
 wandb/
-outputs/wandb/
+mlruns/
+logs/
+tensorboard/
+lightning_logs/
 
-# Model weights
+# ============================================================
+# Model weights / checkpoints
+# ============================================================
 *.pt
 *.pth
 *.onnx
 *.engine
+*.tflite
+*.pb
 *.ckpt
+*.safetensors
+weights/
+checkpoints/
 
-# Logs
+# ============================================================
+# Generated predictions / figures
+# ============================================================
 *.log
-logs/
+inference_result.jpg
+*_prediction.jpg
+*_prediction.json
+confusion_matrix.png
+wrong_predictions.png
+loss_curve.png
+test_confusion_matrix_*.png
+test_error_analysis_*.png
+test_heatmap_gradcam.png
+ablation_comparison_result.png
 
-# Kaggle
-kaggle.json
+# ============================================================
+# Archives
+# ============================================================
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
 
-# Temporary files
-tmp/
-temp/
-.cache/
-
-# Dùng cho Config Loader
-outputs/logs/*
-!outputs/logs/.gitkeep
+# ============================================================
+# Notebook temporary outputs
+# ============================================================
+*.tmp
+*.temp
