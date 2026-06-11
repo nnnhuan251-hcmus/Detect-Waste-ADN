@@ -1,7 +1,7 @@
 model:
   name: hybrid_yolov8n_effb0
-  type: hybrid_detector_classifier
-  description: YOLOv8n detects waste objects, EfficientNet-B0 classifies object crops.
+  type: hybrid
+  description: Hybrid detector-classifier model using YOLOv8n binary detector and EfficientNet-B0 classifier.
 
 detector:
   name: yolov8n
