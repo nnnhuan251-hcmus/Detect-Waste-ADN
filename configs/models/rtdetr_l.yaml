@@ -1,18 +1,15 @@
 model:
-  name: rtdetr_r18
+  name: rtdetr_l
   type: detector_only
-  description: RT-DETR-R18 detector trained directly on 7 waste classes.
+  description: RT-DETR-L detector trained directly on 7 waste classes.
 
 detector:
-  name: rtdetr_r18
+  name: rtdetr_l
   family: rt-detr
+  framework: ultralytics
   task: detect
-
-  backend: to_be_validated
   pretrained: true
-
-  requested_variant: r18
-  weights: null
+  weights: rtdetr-l.pt
 
   detector_mode: seven_class
   num_classes: 7
@@ -32,5 +29,4 @@ detector:
 
 training_backend:
   preferred_backend: ultralytics
-  fallback_backend: custom_pytorch
-  note: "Validate exact RT-DETR-R18 pretrained weight availability before implementing training."
+  note: "Using RT-DETR-L pretrained weights because RT-DETR-R18 pretrained weight is not verified in Ultralytics."
