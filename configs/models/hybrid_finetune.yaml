@@ -1,0 +1,47 @@
+model:
+  name: hybrid_finetune_yolov8n_effb0
+  type: hybrid
+  description: Hybrid detector-classifier model using YOLOv8n binary detector and EfficientNet-B0 classifier.
+
+detector:
+  name: yolov8n
+  framework: ultralytics
+  task: detect
+  pretrained: true
+  weights: outputs/checkpoints/hybrid_yolov8n_effb0/run1_baseline/weights/best.pt
+
+  detector_mode: binary_waste
+  num_classes: 1
+  class_names:
+    - waste
+
+  input_size: 640
+  confidence_threshold: 0.25
+  iou_threshold: 0.50
+  max_detections: 300
+
+classifier:
+  name: efficientnet_b0
+  framework: torchvision
+  task: classify
+  pretrained: true
+  weights: outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth
+
+  num_classes: 7
+  class_names:
+    - plastic
+    - paper
+    - metal
+    - glass
+    - organic
+    - cigarette
+    - other
+
+  input_size: 224
+  dropout: 0.2
+  batch_size: 32
+
+hybrid_inference:
+  crop_margin: 0.10
+  final_confidence_rule: multiply
+  final_confidence_threshold: 0.25
