@@ -3,21 +3,23 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "waste-detection"
+name = "waste-detection-taco"
 version = "0.1.0"
-description = "Waste Detection with Transfer Learning and Fine-tuning using TACO dataset"
+description = "Waste Detection with Transfer Learning and Fine-tuning using YOLOv8, RT-DETR, and EfficientNet-B0."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "Deep Learning Final Project Team" }
+    { name = "ADN" }
 ]
+license = { text = "MIT" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
 testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
 
 [tool.black]
 line-length = 88
