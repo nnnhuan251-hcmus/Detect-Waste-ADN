@@ -19,8 +19,11 @@
     "Plastic utensils",
     "Plastic straw",
     "Other plastic",
-    "Crisp packet"
+    "Crisp packet",
+    "Other plastic wrapper",
+    "Plastified paper bag"
   ],
+
   "paper": [
     "Corrugated carton",
     "Egg carton",
@@ -37,43 +40,48 @@
     "Paper straw",
     "Tissues"
   ],
+
   "metal": [
     "Aluminium foil",
+    "Aluminium blister pack",
     "Metal bottle cap",
     "Aerosol",
     "Drink can",
     "Food can",
+    "Food Can",
     "Metal lid",
     "Pop tab",
     "Scrap metal"
   ],
+
   "glass": [
     "Glass bottle",
     "Broken glass",
     "Glass jar",
     "Glass cup"
   ],
+
   "organic": [
     "Food waste"
   ],
+
   "cigarette": [
     "Cigarette"
   ],
+
   "other": [
-    "Aluminium blister pack",
+    "Battery",
     "Carded blister pack",
     "Foam cup",
     "Garbage bag",
-    "Plastified paper bag",
-    "Other plastic wrapper",
     "Foam food container",
     "Rope",
+    "Rope & strings",
     "Shoe",
     "Squeezable tube",
     "Styrofoam piece",
-    "Rope & strings",
-    "Battery",
     "Unlabeled litter"
   ],
+
   "ignore": []
 }
