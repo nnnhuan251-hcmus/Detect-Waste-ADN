@@ -17,6 +17,8 @@ from waste_detection.utils.device import get_device
 from waste_detection.utils.io import IOUtils
 from waste_detection.utils.logger import LoggerSetup
 
+from waste_detection.evaluation.error_analysis import ClassificationErrorAnalyzer
+from waste_detection.visualization.visualize_errors import ErrorVisualizer
 
 logger = logging.getLogger("evaluate_classifier")
 
@@ -180,6 +182,38 @@ def main() -> None:
 
     IOUtils.save_json(output_dir / "metrics.json", metrics)
     IOUtils.save_json(output_dir / "predictions.json", prediction_rows)
+
+    # --------------------------------
+    error_report = ClassificationErrorAnalyzer.analyze(prediction_rows)
+
+    IOUtils.save_json(
+        output_dir / "error_analysis.json",
+        error_report.to_dict(),
+    )
+    
+    figures_dir = (
+        Path(loaded_config.system.project_root)
+        / "outputs"
+        / "figures"
+        / "classifier"
+        / args.split
+    )
+    
+    ErrorVisualizer.plot_confusion_matrix(
+        confusion_matrix=metrics["confusion_matrix"],
+        class_names=data_config.classes.names,
+        save_path=figures_dir / "confusion_matrix.png",
+    )
+    
+    ErrorVisualizer.plot_wrong_predictions(
+        dataset=dataset,
+        y_true=y_true,
+        y_pred=y_pred,
+        class_names=data_config.classes.names,
+        save_path=figures_dir / "wrong_predictions.png",
+        max_samples=9,
+    )
+    # --------------------------------
 
     logger.info("Evaluation hoàn tất.")
     logger.info("Accuracy: %.4f", metrics["accuracy"])
