@@ -1,5 +1,3 @@
-from waste_detection.training.trainer_base import TrainerBase
-
 from __future__ import annotations
 
 import logging
@@ -13,6 +11,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from waste_detection.training.trainer_base import TrainerBase
 from waste_detection.models.efficientnet_classifier import EfficientNetB0Classifier
 from waste_detection.training.losses import LossFactory
 from waste_detection.training.schedulers import SchedulerFactory
