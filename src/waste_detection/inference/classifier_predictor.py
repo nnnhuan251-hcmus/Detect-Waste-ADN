@@ -1,5 +1,3 @@
-from waste_detection.inference.predictor_base import PredictorBase
-
 from __future__ import annotations
 
 import logging
@@ -12,6 +10,7 @@ import numpy as np
 import torch
 from PIL import Image
 
+from waste_detection.inference.predictor_base import PredictorBase
 from waste_detection.data.transforms import ClassifierTransformFactory
 from waste_detection.models.efficientnet_classifier import EfficientNetB0Classifier
 
