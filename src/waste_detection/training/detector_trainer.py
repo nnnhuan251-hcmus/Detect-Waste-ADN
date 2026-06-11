@@ -1,11 +1,10 @@
-from waste_detection.training.trainer_base import TrainerBase
-
 from __future__ import annotations
 
 import logging
 from pathlib import Path
 from typing import Any, Dict
 
+from waste_detection.training.trainer_base import TrainerBase
 from waste_detection.evaluation.detection_metrics import DetectionMetrics
 from waste_detection.models.detector_base import DetectorBase
 from waste_detection.models.rtdetr_detector import RTDETRDetector
