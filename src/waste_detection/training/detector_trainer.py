@@ -198,18 +198,14 @@ class DetectorTrainer:
         mosaic_enabled = bool(augmentation_config.get("mosaic", False))
         color_jitter_enabled = bool(augmentation_config.get("color_jitter", False))
         horizontal_flip_enabled = bool(augmentation_config.get("horizontal_flip", False))
-        rotate_enabled = bool(augmentation_config.get("rotate90", False)) or bool(
-            augmentation_config.get("rotate180", False)
-        )
-
+    
         color_params = augmentation_config.get("color_jitter_params", {})
-
+    
         if not any(
             [
                 mosaic_enabled,
                 color_jitter_enabled,
                 horizontal_flip_enabled,
-                rotate_enabled,
             ]
         ):
             return {
@@ -221,15 +217,14 @@ class DetectorTrainer:
                 "hsv_s": 0.0,
                 "hsv_v": 0.0,
             }
-
+    
         return {
             "mosaic": float(augmentation_config.get("mosaic_prob", 0.5))
             if mosaic_enabled
             else 0.0,
-            # Lưu ý: Ultralytics degrees là random rotation range,
-            # không phải orthogonal-only rotation. Nếu cần 90/180 chính xác,
-            # ta sẽ bổ sung augmentation custom ở nhánh sau.
-            "degrees": 180.0 if rotate_enabled else 0.0,
+            # Không dùng diagonal rotation cho detector vì bbox là axis-aligned.
+            # Nếu cần 90/180 thật, làm offline bbox-aware augmentation riêng.
+            "degrees": 0.0,
             "fliplr": 0.5 if horizontal_flip_enabled else 0.0,
             "flipud": 0.0,
             "hsv_h": float(color_params.get("hue", 0.015))
