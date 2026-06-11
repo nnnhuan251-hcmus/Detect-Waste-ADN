@@ -88,6 +88,8 @@ crop_dataset:
   output_size: 224
   save_format: jpg
   jpeg_quality: 95
-  include_context_margin: 0.05
+  include_context_margin: 0.10
   min_crop_size: 8
   write_metadata_csv: true
+
+
