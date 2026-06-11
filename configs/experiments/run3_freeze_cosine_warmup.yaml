@@ -1,6 +1,6 @@
 experiment:
   name: run3_freeze_cosine_warmup
-  description: Strong augmentation with freeze/unfreeze, cosine annealing scheduler, warm-up, and gradient control.
+  description: Strong augmentation with staged freeze/unfreeze, cosine annealing scheduler, warm-up, and gradient control.
   seed: 42
 
 data:
@@ -13,6 +13,8 @@ augmentation:
   horizontal_flip: true
   vertical_flip: false
 
+  # For classifier crop transform: exact orthogonal rotation only.
+  # For detector: diagonal rotation must stay disabled in DetectorTrainer.
   rotate90: true
   rotate180: true
 
@@ -63,11 +65,12 @@ fine_tuning:
   freeze_epochs: 5
   gradual_unfreeze: true
   unfreeze_schedule:
-    - epoch: 5
+    - epoch: 0
       unfreeze: classifier_head
-    - epoch: 10
+      note: classifier head is trainable while backbone is frozen
+    - epoch: 5
       unfreeze: last_blocks
-    - epoch: 15
+    - epoch: 10
       unfreeze: full_model
 
 gradient_control:
@@ -91,7 +94,7 @@ checkpoint:
   mode: max
 
 tracking:
-  use_wandb: true
+  use_wandb: false
   project: waste-detection-taco
   group: ablation
   tags:
