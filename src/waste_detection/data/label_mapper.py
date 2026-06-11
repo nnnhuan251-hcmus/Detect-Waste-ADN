@@ -28,6 +28,9 @@ class LabelMappingReport:
 
     old_category_id_to_new_category_id: Dict[int, int] = field(default_factory=dict)
 
+    duplicate_original_annotation_ids: List[int] = field(default_factory=list)
+    annotation_id_reindexed: bool = True
+
     @property
     def num_unmapped_categories(self) -> int:
         return len(set(self.unmapped_category_names))
@@ -39,6 +42,10 @@ class LabelMappingReport:
     @property
     def num_mapped_categories(self) -> int:
         return len(set(self.mapped_category_names.keys()))
+
+    @property
+    def num_duplicate_original_annotation_ids(self) -> int:
+        return len(set(self.duplicate_original_annotation_ids))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -55,6 +62,11 @@ class LabelMappingReport:
             "ignored_category_names": sorted(set(self.ignored_category_names)),
             "unmapped_category_names": sorted(set(self.unmapped_category_names)),
             "old_category_id_to_new_category_id": self.old_category_id_to_new_category_id,
+            "annotation_id_reindexed": self.annotation_id_reindexed,
+            "num_duplicate_original_annotation_ids": self.num_duplicate_original_annotation_ids,
+            "duplicate_original_annotation_ids": sorted(
+                set(self.duplicate_original_annotation_ids)
+            ),
         }
 
 
@@ -75,7 +87,7 @@ class TacoLabelMapper:
     - categories được thay bằng 7 class target id 0..6.
     - annotations được đổi category_id tương ứng.
     - annotation thuộc ignore sẽ bị bỏ.
-    - category unmapped sẽ raise error nếu fail_on_unmapped=True.
+    - annotation id được re-index để tránh lỗi duplicate id từ file COCO gốc.
     """
 
     def __init__(
@@ -106,6 +118,10 @@ class TacoLabelMapper:
             num_original_categories=len(categories),
             num_target_categories=len(self.target_class_names),
             num_original_annotations=len(annotations),
+        )
+
+        report.duplicate_original_annotation_ids = self._find_duplicate_annotation_ids(
+            annotations
         )
 
         original_name_to_target_name, ignored_names = self._build_reverse_mapping(
@@ -146,6 +162,7 @@ class TacoLabelMapper:
             )
 
         new_annotations = []
+        next_annotation_id = 1
 
         for annotation in annotations:
             old_category_id = int(annotation.get("category_id"))
@@ -169,22 +186,33 @@ class TacoLabelMapper:
 
                 continue
 
+            old_annotation_id = annotation.get("id")
+
             new_annotation = deepcopy(annotation)
+
+            # Quan trọng:
+            # TACO official annotations.json có thể có duplicate annotation id.
+            # Processed COCO phải có id unique để split/convert/train không lỗi.
+            new_annotation["source_annotation_id"] = old_annotation_id
+            new_annotation["id"] = next_annotation_id
             new_annotation["category_id"] = old_category_id_to_new_category_id[
                 old_category_id
             ]
 
             new_annotations.append(new_annotation)
+
+            next_annotation_id += 1
             report.num_mapped_annotations += 1
 
         dataset["categories"] = self._build_target_categories()
         dataset["annotations"] = new_annotations
 
         logger.info(
-            "Label mapping xong: %d mapped annotations, %d ignored, %d unmapped.",
+            "Label mapping xong: %d mapped annotations, %d ignored, %d unmapped, %d duplicate original annotation ids.",
             report.num_mapped_annotations,
             report.num_ignored_annotations,
             report.num_unmapped_annotations,
+            report.num_duplicate_original_annotation_ids,
         )
 
         return dataset, report
@@ -249,3 +277,28 @@ class TacoLabelMapper:
                 "target ids phải liên tục từ 0 đến num_classes - 1. "
                 f"Expected={expected_ids}, got={actual_ids}"
             )
+
+    @staticmethod
+    def _find_duplicate_annotation_ids(
+        annotations: List[Dict[str, Any]],
+    ) -> List[int]:
+        seen_ids = set()
+        duplicate_ids = []
+
+        for annotation in annotations:
+            annotation_id = annotation.get("id")
+
+            if annotation_id is None:
+                continue
+
+            try:
+                annotation_id = int(annotation_id)
+            except (TypeError, ValueError):
+                continue
+
+            if annotation_id in seen_ids:
+                duplicate_ids.append(annotation_id)
+            else:
+                seen_ids.add(annotation_id)
+
+        return duplicate_ids
