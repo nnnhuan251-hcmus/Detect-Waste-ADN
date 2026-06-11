@@ -41,6 +41,12 @@ fine_tuning:
   freeze_epochs: 0
   gradual_unfreeze: false
 
+gradient_control:
+  enabled: false
+  gradient_clipping: false
+  max_norm: 10.0
+  monitor_gradient_norm: false
+
 training:
   epochs: 50
   batch_size: 16
@@ -56,7 +62,7 @@ checkpoint:
   mode: max
 
 tracking:
-  use_wandb: true
+  use_wandb: false
   project: waste-detection-taco
   group: ablation
   tags:
