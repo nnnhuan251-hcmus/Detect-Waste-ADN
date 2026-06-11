@@ -88,15 +88,15 @@ The main experiment uses TACO official COCO annotations.
 
 The repository also includes an adapter for Roboflow COCO datasets. This allows a Roboflow COCO dataset with `train`, `valid`, and `test` splits to be imported into the same internal COCO split format used by this project.
 
-To import and prepare a Roboflow COCO dataset (e.g., for fine-tuning), use the following scripts. This will overwrite the existing `processed/` data directories:
+To safely import and prepare a Roboflow COCO dataset (e.g., for fine-tuning) without overwriting the TACO `processed/` data directories, use the isolated Roboflow data configuration:
 
 ```bash
-python scripts/data/import_roboflow_coco.py --dataset-dir <path_to_roboflow_dir> --data-config configs/data/taco_7class.yaml
-python scripts/data/convert_coco_to_yolo.py --data-config configs/data/taco_7class.yaml
-python scripts/data/create_crop_dataset.py --data-config configs/data/taco_7class.yaml
+python scripts/data/import_roboflow_coco.py --dataset-dir <path_to_roboflow_dir> --data-config configs/data/roboflow_7class.yaml
+python scripts/data/convert_coco_to_yolo.py --data-config configs/data/roboflow_7class.yaml
+python scripts/data/create_crop_dataset.py --data-config configs/data/roboflow_7class.yaml
 ```
 
-Roboflow support is optional and does not change the main TACO experiment.
+This ensures the Roboflow dataset is processed into `data/processed_roboflow/`, maintaining complete separation from the main TACO experiment.
 
 ---
 
@@ -112,10 +112,12 @@ our_pipeline/
 ├── configs/
 │   ├── data/
 │   │   ├── taco_7class.yaml
+│   │   ├── roboflow_7class.yaml
 │   │   └── mapping_label.json
 │   │
 │   ├── models/
 │   │   ├── hybrid_yolov8n_effb0.yaml
+│   │   ├── hybrid_finetune.yaml
 │   │   ├── yolov8s.yaml
 │   │   └── rtdetr_l.yaml
 │   │
@@ -435,12 +437,12 @@ Then, train using an experiment configuration with freezing and warm-up (e.g., `
 
 ```bash
 python scripts/train/train_detector.py \
-  --data-config configs/data/taco_7class.yaml \
+  --data-config configs/data/roboflow_7class.yaml \
   --model-config configs/models/hybrid_finetune.yaml \
   --experiment-config configs/experiments/run3_freeze_cosine_warmup.yaml
 
 python scripts/train/train_classifier.py \
-  --data-config configs/data/taco_7class.yaml \
+  --data-config configs/data/roboflow_7class.yaml \
   --model-config configs/models/hybrid_finetune.yaml \
   --experiment-config configs/experiments/run3_freeze_cosine_warmup.yaml
 ```
@@ -482,9 +484,19 @@ python scripts/eval/evaluate_hybrid.py \
 
 ---
 
-## 11. Các Công Cụ Phân Tích & Chạy Nhanh (Được kế thừa từ our_pipeline)
+## 11. Automated Notebook Pipeline & Tools
 
-### 11.1 Chạy Nhận Diện Siêu Tốc (Easy Inference)
+### 11.1 Kaggle 3-Stage Training Notebook
+
+The project provides a fully automated Jupyter Notebook (`notebooks/kaggle_runner.ipynb` and `adn-v1.ipynb`) that handles the entire pipeline in three distinct stages:
+
+1. **STAGE 1 (Pre-train):** Downloads TACO via Kagglehub, processes it, and trains the baseline models.
+2. **STAGE 2 (Fine-tune):** Downloads a custom dataset via Roboflow API, processes it into `data/processed_roboflow` to avoid overwriting TACO, auto-generates `hybrid_finetune.yaml` inheriting weights from Stage 1, and fine-tunes the models.
+3. **STAGE 3 (Evaluation):** Automatically evaluates the fine-tuned model and extracts a random test image for XAI (Grad-CAM) and Ablation visualization.
+
+This notebook is intended for Contributors to effortlessly reproduce experiments with a single "Run All" click.
+
+### 11.2 Chạy Nhận Diện Siêu Tốc (Easy Inference)
 
 Bạn không cần truyền các file cấu hình YAML phức tạp. Chỉ cần dùng kịch bản sau để chạy nhanh một bức ảnh:
 
