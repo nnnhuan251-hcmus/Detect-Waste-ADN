@@ -1,3 +1,5 @@
+from waste_detection.inference.predictor_base import PredictorBase
+
 from __future__ import annotations
 
 import logging
@@ -44,7 +46,7 @@ class HybridPrediction:
         }
 
 
-class HybridPredictor:
+class HybridPredictor(PredictorBase):
     """
     Hybrid inference pipeline:
 
@@ -94,8 +96,8 @@ class HybridPredictor:
             input_is_bgr=True,
         )
 
-    def predict(self, image_path: str | Path) -> List[HybridPrediction]:
-        image_path = Path(image_path)
+    def predict(self, source: str | Path, **kwargs) -> List[HybridPrediction]:
+        image_path = Path(source)
 
         image_bgr = cv2.imread(str(image_path))
 
