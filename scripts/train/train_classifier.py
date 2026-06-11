@@ -136,11 +136,16 @@ def main() -> None:
 
     class_weights = train_dataset.get_class_weights()
 
-    model = EfficientNetB0Classifier(
-        num_classes=data_config.classes.num_classes,
-        dropout=float(classifier_config.get("dropout", 0.2)),
-        pretrained=bool(classifier_config.get("pretrained", True)),
-    )
+    weights_val = classifier_config.get("weights", "IMAGENET1K_V1")
+    if str(weights_val).endswith(".pth") or str(weights_val).endswith(".pt"):
+        logger.info(f"Đang nạp trọng số tự chọn (Pre-trained) từ: {weights_val} để Fine-tune...")
+        model, _ = EfficientNetB0Classifier.load_from_checkpoint(weights_val, map_location=device)
+    else:
+        model = EfficientNetB0Classifier(
+            num_classes=data_config.classes.num_classes,
+            dropout=float(classifier_config.get("dropout", 0.2)),
+            pretrained=bool(classifier_config.get("pretrained", True)),
+        )
 
     logger.info(
         "EfficientNet-B0 parameters: total=%d, trainable=%d",
