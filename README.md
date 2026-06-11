@@ -23,7 +23,7 @@ This project compares three model settings:
    - Detector-only model.
    - Predicts bounding boxes and 7 waste classes directly.
 
-3. RT-DETR-R18
+3. RT-DETR-L
    - Detector-only model.
    - Predicts bounding boxes and 7 waste classes directly.
 
