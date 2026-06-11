@@ -447,29 +447,44 @@ python scripts/eval/evaluate_hybrid.py \
 
 ---
 
-## 11. Inference on a Single Image
+## 11. Các Công Cụ Phân Tích & Chạy Nhanh (Được kế thừa từ our_pipeline)
+
+### 11.1 Chạy Nhận Diện Siêu Tốc (Easy Inference)
+
+Bạn không cần truyền các file cấu hình YAML phức tạp. Chỉ cần dùng kịch bản sau để chạy nhanh một bức ảnh:
 
 ```bash
-python scripts/infer/infer_image.py \
-  --data-config configs/data/taco_7class.yaml \
-  --model-config configs/models/hybrid_yolov8n_effb0.yaml \
-  --detector-weights outputs/checkpoints/path_to_yolov8n_binary_best.pt \
-  --classifier-weights outputs/checkpoints/path_to_classifier_best.pth \
+python scripts/easy_infer.py \
   --image path/to/test_image.jpg \
-  --save-dir outputs/predictions
+  --detector weights/detector.pt \
+  --classifier_weights weights/classifier.pth \
+  --conf 0.25
 ```
+Kết quả trực quan (Bounding Box + Nhãn + Độ tin cậy) sẽ được lưu thẳng thành `inference_result.jpg`.
 
-The output includes:
+### 11.2 Bản Đồ Nhiệt Giải Thích (XAI - Grad-CAM)
 
-```text
-Annotated image
-Prediction JSON
-Bounding boxes
-Predicted class labels
-Detector confidence
-Classifier confidence
-Final confidence
+Đây là công cụ giúp bạn ghi điểm tuyệt đối trong báo cáo. Nó sẽ vẽ bản đồ nhiệt cho thấy mạng CNN đang "nhìn" vào điểm nào trên cục rác để phân loại.
+
+```bash
+python scripts/eval/run_xai.py \
+  --image path/to/test_image.jpg \
+  --detector weights/detector.pt \
+  --classifier_weights weights/classifier.pth
 ```
+Hệ thống sẽ tự cắt ảnh và lưu biểu đồ vào `test_heatmap_gradcam.png`.
+
+### 11.3 So Sánh Kiến Trúc (Ablation Comparison)
+
+Hiển thị trực quan sự khác biệt giữa việc: Truyền thẳng ảnh vào CNN (bị nhiễu hậu cảnh) VS Việc dùng YOLO cắt rác rồi mới phân loại.
+
+```bash
+python scripts/eval/ablation_comparison.py \
+  --image path/to/test_image.jpg \
+  --detector weights/detector.pt \
+  --classifier_weights weights/classifier.pth
+```
+Kết quả được trình bày cạnh nhau, siêu trực quan tại `ablation_comparison_result.png`.
 
 ---
 
