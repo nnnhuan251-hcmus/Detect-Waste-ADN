@@ -488,7 +488,43 @@ Kết quả được trình bày cạnh nhau, siêu trực quan tại `ablation_
 
 ---
 
-## 12. Metrics
+## 12. Hướng Dẫn Train Trên Kaggle & Fine-tuning (Domain Adaptation)
+
+Dự án hỗ trợ chạy End-to-End trên nền tảng Kaggle Notebook và huấn luyện nối tiếp (Fine-tune) trên bộ dữ liệu thứ 2 (Roboflow).
+
+### 12.1. Thiết lập môi trường Kaggle
+Khi chạy trên Kaggle, hãy clone đúng nhánh chứa code và cài đặt bằng lệnh:
+```bash
+!git clone -b feature/our-pipeline-integration https://github.com/realer23kdl/Waste-Detection-and-Classification.git
+%cd Waste-Detection-and-Classification
+!pip install -r requirements.txt
+!pip install kagglehub roboflow
+!pip install -e .
+```
+Lưu ý: Để tránh lỗi không tìm thấy Module trên Kaggle, luôn thiết lập biến môi trường `PYTHONPATH`:
+```python
+import os
+os.environ['PYTHONPATH'] = "src"
+```
+
+### 12.2. Huấn luyện nối tiếp (Fine-tuning) với Roboflow Data
+Sau khi train xong Giai đoạn 1 trên TACO (Kaggle), bạn có thể nạp tiếp bộ dữ liệu COCO từ Roboflow (Dataset 2) và Fine-tune:
+1. Tải bộ Data Roboflow và chạy bộ chuyển đổi (nó sẽ ghi đè vào thư mục `processed/` cũ):
+```bash
+!python scripts/data/import_roboflow_coco.py --dataset-dir <đường_dẫn_roboflow> --data-config configs/data/taco_7class.yaml
+!python scripts/data/convert_coco_to_yolo.py --data-config configs/data/taco_7class.yaml
+!python scripts/data/create_crop_dataset.py --data-config configs/data/taco_7class.yaml
+```
+2. Tạo file `hybrid_finetune.yaml` bằng cách sao chép file gốc, sửa phần `weights:` trỏ vào các file `best.pt` và `best.pth` thu được ở Giai đoạn 1. (Mã nguồn đã được nâng cấp để EfficientNet nhận file `.pth` tự chọn thay vì ImageNet).
+3. Chạy lại lệnh train với kịch bản đóng băng và Warm-up:
+```bash
+!python scripts/train/train_detector.py --model-config configs/models/hybrid_finetune.yaml --experiment-config configs/experiments/run3_freeze_cosine_warmup.yaml
+!python scripts/train/train_classifier.py --model-config configs/models/hybrid_finetune.yaml --experiment-config configs/experiments/run3_freeze_cosine_warmup.yaml
+```
+
+---
+
+## 13. Metrics
 
 ### Detection metrics
 
@@ -532,7 +568,7 @@ Localization errors
 
 ---
 
-## 13. Outputs
+## 14. Outputs
 
 Training and evaluation outputs are saved under:
 
@@ -549,7 +585,7 @@ These files are ignored by Git and should not be committed.
 
 ---
 
-## 14. Testing
+## 15. Testing
 
 Run unit tests:
 
@@ -568,7 +604,7 @@ Orthogonal bbox-aware augmentation
 
 ---
 
-## 15. Git Notes
+## 16. Git Notes
 
 Do not commit:
 
@@ -596,7 +632,7 @@ pyproject.toml
 
 ---
 
-## 16. Project Scope
+## 17. Project Scope
 
 This project does not perform segmentation.
 
