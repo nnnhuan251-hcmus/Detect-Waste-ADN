@@ -11,9 +11,8 @@ from waste_detection.inference.classifier_predictor import ClassifierPredictor
 
 def run_ablation_comparison(image_path, detector_weights, classifier_weights):
     print(f"BẮT ĐẦU THỰC NGHIỆM ABLATION STUDY TRÊN ẢNH: {image_path}")
-    
-    class_names = ['Aluminium foil', 'Battery', 'Blister pack', 'Bottle', 'Bottle cap', 'Broken glass', 'Can']
-    
+    # Class names mặc định của đồ án (7 Macro-classes)
+    class_names = ['plastic', 'paper', 'metal', 'glass', 'organic', 'cigarette', 'other']
     # Nạp mô hình
     classifier = ClassifierPredictor(weights_path=classifier_weights, class_names=class_names)
     hybrid = HybridPredictor(

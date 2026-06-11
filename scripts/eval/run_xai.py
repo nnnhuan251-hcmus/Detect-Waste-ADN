@@ -31,8 +31,8 @@ def run_test(image_path, detector_weights, classifier_weights):
 
     print("\n--- BƯỚC 1 & 2: CHẠY NHẬN DIỆN VÀ PHÂN LOẠI (HYBRID PIPELINE) ---")
     
-    # Class names mặc định (TACO 7 classes)
-    class_names = ['Aluminium foil', 'Battery', 'Blister pack', 'Bottle', 'Bottle cap', 'Broken glass', 'Can']
+    # Class names mặc định của đồ án (7 Macro-classes)
+    class_names = ['plastic', 'paper', 'metal', 'glass', 'organic', 'cigarette', 'other']
     
     predictor = HybridPredictor(
         detector_weights=detector_weights,
