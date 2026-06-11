@@ -1,3 +1,5 @@
+from waste_detection.training.trainer_base import TrainerBase
+
 from __future__ import annotations
 
 import logging
@@ -20,7 +22,7 @@ from waste_detection.utils.io import IOUtils
 logger = logging.getLogger("ClassifierTrainer")
 
 
-class ClassifierTrainer:
+class ClassifierTrainer(TrainerBase):
     """
     Training loop cho EfficientNet-B0 classifier.
 
@@ -238,6 +240,12 @@ class ClassifierTrainer:
             y_pred=y_pred,
             loss=total_loss / max(1, len(self.val_loader)),
         )
+
+    def validate(self) -> Dict[str, float]:
+        """
+        Public validation method theo TrainerBase.
+        """
+        return self._validate(epoch=-1)
 
     def _compute_metrics(
         self,
