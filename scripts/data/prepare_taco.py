@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import argparse
 import logging
 
 from waste_detection.config.config_loader import ConfigLoader
+from waste_detection.data.bbox_sanitizer import BBoxSanitizer
 from waste_detection.data.coco_reader import CocoReader
 from waste_detection.data.coco_splitter import CocoSplitter
 from waste_detection.data.coco_validator import COCOValidator
@@ -42,6 +45,7 @@ def main() -> None:
     args = parse_args()
 
     loader = ConfigLoader(project_root=args.project_root)
+
     loaded_config = loader.load_all(
         data_config_path=args.data_config,
         log_file_name="prepare_taco.log",
@@ -65,6 +69,9 @@ def main() -> None:
         allowed_extensions=data_config.image_structure.allowed_extensions,
     )
 
+    # ------------------------------------------------------------------
+    # Bước 1: Load và kiểm tra COCO gốc
+    # ------------------------------------------------------------------
     logger.info("Bước 1: Load và kiểm tra annotations.json gốc.")
 
     raw_dataset = CocoReader(data_config.paths.annotation_file).load(
@@ -95,6 +102,9 @@ def main() -> None:
         image_report.to_dict(),
     )
 
+    # ------------------------------------------------------------------
+    # Bước 2: Map nhãn gốc sang 7 class
+    # ------------------------------------------------------------------
     logger.info("Bước 2: Map nhãn TACO gốc sang 7 class.")
 
     mapping_dict = IOUtils.load_json(data_config.mapping.file)
@@ -111,10 +121,32 @@ def main() -> None:
         mapping_dict=mapping_dict,
     )
 
+    # ------------------------------------------------------------------
+    # Bước 2.5: Clamp/drop bbox vượt biên ảnh
+    # ------------------------------------------------------------------
+    logger.info("Bước 2.5: Clamp/drop bbox vượt biên ảnh sau khi map nhãn.")
+
+    bbox_sanitizer = BBoxSanitizer(
+        min_width=data_config.bbox.min_width,
+        min_height=data_config.bbox.min_height,
+        clamp_to_image=data_config.bbox.clamp_to_image,
+        drop_invalid_bbox=data_config.bbox.drop_invalid_bbox,
+    )
+
+    processed_dataset, bbox_sanitizer_report = bbox_sanitizer.sanitize(
+        processed_dataset
+    )
+
+    IOUtils.save_json(
+        data_config.paths.coco_7class_dir / "bbox_sanitizer_report.json",
+        bbox_sanitizer_report.to_dict(),
+    )
+
+    # Sau sanitizer, processed COCO phải sạch cả duplicate id lẫn bbox vượt biên.
     COCOValidator.validate(
         dataset=processed_dataset,
         strict=True,
-        check_bbox_inside_image=False,
+        check_bbox_inside_image=True,
     )
 
     IOUtils.save_coco_json(
@@ -132,6 +164,9 @@ def main() -> None:
         mapping_report.to_dict(),
     )
 
+    # ------------------------------------------------------------------
+    # Bước 3: Split train/val/test
+    # ------------------------------------------------------------------
     logger.info("Bước 3: Split train/val/test.")
 
     splitter = CocoSplitter(
@@ -164,6 +199,9 @@ def main() -> None:
         split_report.to_dict(),
     )
 
+    # ------------------------------------------------------------------
+    # Bước 4: Convert sang YOLO 7-class
+    # ------------------------------------------------------------------
     logger.info("Bước 4: Convert sang YOLO 7-class.")
 
     yolo_7class_converter = YoloConverter(
@@ -174,7 +212,10 @@ def main() -> None:
         min_box_height=data_config.bbox.min_height,
     )
 
-    yolo_reports = {"yolo_7class": {}, "yolo_binary_waste": {}}
+    yolo_reports = {
+        "yolo_7class": {},
+        "yolo_binary_waste": {},
+    }
 
     for split_name, split_dataset in splits.items():
         report = yolo_7class_converter.convert_split(
@@ -183,10 +224,14 @@ def main() -> None:
             image_resolver=resolver,
             copy_images=True,
         )
+
         yolo_reports["yolo_7class"][split_name] = report.to_dict()
 
     yolo_7class_converter.write_data_yaml()
 
+    # ------------------------------------------------------------------
+    # Bước 5: Convert sang YOLO binary-waste
+    # ------------------------------------------------------------------
     logger.info("Bước 5: Convert sang YOLO binary-waste cho hybrid detector.")
 
     yolo_binary_converter = YoloConverter(
@@ -205,6 +250,7 @@ def main() -> None:
             image_resolver=resolver,
             copy_images=True,
         )
+
         yolo_reports["yolo_binary_waste"][split_name] = report.to_dict()
 
     yolo_binary_converter.write_data_yaml()
@@ -214,14 +260,19 @@ def main() -> None:
         yolo_reports,
     )
 
+    # ------------------------------------------------------------------
+    # Bước 6: Tạo crop dataset cho EfficientNet-B0 classifier
+    # ------------------------------------------------------------------
     logger.info("Bước 6: Tạo crop dataset cho EfficientNet-B0 classifier.")
 
     crop_builder = CropDatasetBuilder(
         output_root=data_config.paths.crops_7class_dir,
+        class_names=data_config.classes.names,
         margin_ratio=data_config.crop_dataset.include_context_margin,
         min_crop_size=data_config.crop_dataset.min_crop_size,
         save_format=data_config.crop_dataset.save_format,
         jpeg_quality=data_config.crop_dataset.jpeg_quality,
+        write_metadata_csv=False,
     )
 
     crop_reports = {}
