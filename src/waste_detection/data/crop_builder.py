@@ -32,7 +32,7 @@ class CropBuildReport:
     @property
     def num_saved_crops(self) -> int:
         """
-        Alias để tương thích với test hoặc code dùng tên num_saved_crops.
+        Alias để tương thích với test hoặc code cũ dùng tên num_saved_crops.
         """
         return self.num_crops_saved
 
@@ -79,7 +79,10 @@ class CropDatasetBuilder:
         self.min_crop_size = int(min_crop_size)
         self.save_format = save_format.lower().lstrip(".")
         self.jpeg_quality = int(jpeg_quality)
-        self.write_metadata_csv = bool(write_metadata_csv)
+
+        # Không được đặt tên là self.write_metadata_csv
+        # vì sẽ đè lên method write_metadata_csv().
+        self.write_metadata_csv_enabled = bool(write_metadata_csv)
 
     def build_from_coco(
         self,
@@ -89,9 +92,8 @@ class CropDatasetBuilder:
         image_resolver: ImageResolver | None = None,
     ) -> CropBuildReport:
         """
-        Interface tiện dụng cho test và script đơn giản.
+        Interface đơn giản:
 
-        Ví dụ:
             builder = CropDatasetBuilder(...)
             report = builder.build_from_coco(...)
         """
@@ -100,7 +102,7 @@ class CropDatasetBuilder:
             split_name=split_name,
             image_root=Path(image_root),
             image_resolver=image_resolver,
-            auto_write_metadata=self.write_metadata_csv,
+            auto_write_metadata=self.write_metadata_csv_enabled,
         )
 
         return report
@@ -112,7 +114,7 @@ class CropDatasetBuilder:
         image_resolver: ImageResolver,
     ) -> tuple[CropBuildReport, List[Dict[str, Any]]]:
         """
-        Interface tương thích với pipeline đang dùng ImageResolver.
+        Interface dùng trong pipeline chính với ImageResolver.
 
         Trả về:
             report, metadata_rows
@@ -288,6 +290,12 @@ class CropDatasetBuilder:
         metadata_rows: List[Dict[str, Any]],
         output_path: str | Path | None = None,
     ) -> Path:
+        """
+        Ghi metadata crop ra CSV.
+
+        Tên method này được giữ lại để tương thích với script đang gọi:
+            builder.write_metadata_csv(...)
+        """
         if output_path is None:
             output_path = self.output_root / "crops_metadata.csv"
 
