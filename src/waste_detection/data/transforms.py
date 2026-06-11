@@ -75,8 +75,6 @@ class ClassifierTransformFactory:
                         [
                             transforms.RandomRotation((90, 90)),
                             transforms.RandomRotation((180, 180)),
-                            transforms.RandomRotation((270, 270)),
-                            transforms.RandomRotation(15),
                         ]
                     ),
                 ]
