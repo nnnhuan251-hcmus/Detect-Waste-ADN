@@ -1,5 +1,3 @@
-from waste_detection.inference.predictor_base import PredictorBase
-
 from __future__ import annotations
 
 import logging
@@ -7,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
 
+from waste_detection.inference.predictor_base import PredictorBase
 from waste_detection.models.detector_base import DetectorBase
 from waste_detection.models.rtdetr_detector import RTDETRDetector
 from waste_detection.models.yolov8_detector import YOLOv8Detector
