@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Tuple
 import cv2
 from tqdm import tqdm
 
+from waste_detection.utils.io import IOUtils
 from waste_detection.data.image_resolver import ImageResolver
 
 
@@ -79,7 +80,7 @@ class OrthogonalAugmenter:
         dataset: Dict[str, Any],
         image_resolver: ImageResolver,
     ) -> Tuple[Dict[str, Any], OrthogonalAugmentationReport]:
-        self.output_image_dir.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(self.output_image_dir)
 
         images = dataset.get("images", [])
         annotations = dataset.get("annotations", [])
@@ -124,9 +125,10 @@ class OrthogonalAugmenter:
                 report.missing_files.append(file_name)
                 continue
 
-            image_bgr = cv2.imread(str(source_path))
-
-            if image_bgr is None:
+            try:
+                image_bgr = IOUtils.load_image_bgr(source_path)
+            except (FileNotFoundError, ValueError):
+                logger.exception("Không đọc được ảnh để augment: %s", source_path)
                 report.num_missing_images += 1
                 report.missing_files.append(file_name)
                 continue
@@ -145,10 +147,10 @@ class OrthogonalAugmenter:
                 output_file_name = f"{safe_stem}__rot{angle}.jpg"
                 output_path = self.output_image_dir / output_file_name
 
-                cv2.imwrite(
-                    str(output_path),
-                    rotated_image,
-                    [int(cv2.IMWRITE_JPEG_QUALITY), int(self.jpeg_quality)],
+                IOUtils.save_image_bgr(
+                    dest_path=output_path,
+                    image_bgr=rotated_image,
+                    jpeg_quality=self.jpeg_quality,
                 )
 
                 if self.use_absolute_file_names:
@@ -304,6 +306,8 @@ class OrthogonalAugmenter:
 
     @staticmethod
     def _safe_stem(file_name: str) -> str:
-        path = Path(file_name)
-        parts = list(path.with_suffix("").parts)
-        return "__".join(parts)
+        normalized = str(file_name).replace("\\", "/").strip("/")
+        normalized = normalized.replace(":", "_")
+        path = Path(normalized)
+        stem_without_suffix = str(path.with_suffix("")).replace("\\", "/")
+        return stem_without_suffix.replace("/", "__")
