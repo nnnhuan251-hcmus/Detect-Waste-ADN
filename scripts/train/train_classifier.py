@@ -50,6 +50,27 @@ def parse_args() -> argparse.Namespace:
         default=None,
     )
 
+    parser.add_argument(
+        "--use-wandb",
+        action="store_true",
+        help="Bật W&B tracking, override tracking.use_wandb trong YAML.",
+    )
+
+    parser.add_argument(
+        "--wandb-mode",
+        type=str,
+        default=None,
+        choices=["online", "offline", "disabled"],
+        help="Override W&B mode.",
+    )
+
+    parser.add_argument(
+        "--wandb-entity",
+        type=str,
+        default=None,
+        help="W&B entity/team/user. Có thể bỏ trống.",
+    )
+
     return parser.parse_args()
 
 
@@ -76,6 +97,20 @@ def main() -> None:
     data_config = loaded_config.data
     model_config = loaded_config.model
     experiment_config = loaded_config.experiment
+
+    tracking_config = experiment_config.setdefault("tracking", {})
+
+    if args.use_wandb:
+        tracking_config["use_wandb"] = True
+
+    if args.wandb_mode is not None:
+        tracking_config["mode"] = args.wandb_mode
+
+        if args.wandb_mode == "disabled":
+            tracking_config["use_wandb"] = False
+
+    if args.wandb_entity is not None:
+        tracking_config["entity"] = args.wandb_entity
 
     LoggerSetup.initialize(
         log_file=loaded_config.system.log_file_path,
@@ -136,7 +171,11 @@ def main() -> None:
         pin_memory=True,
     )
 
-    class_weights = train_dataset.get_class_weights()
+    use_class_weighting = bool(
+        experiment_config.get("loss", {}).get("class_weighting", False)
+    )
+
+    class_weights = train_dataset.get_class_weights() if use_class_weighting else None
 
     model = EfficientNetB0Classifier(
         num_classes=data_config.classes.num_classes,
@@ -161,19 +200,94 @@ def main() -> None:
         / run_name
     )
 
-    trainer = ClassifierTrainer(
-        model=model,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        class_names=data_config.classes.names,
-        experiment_config=experiment_config,
+    wandb_config = {
+        "data": data_config,
+        "model": model_config,
+        "experiment": experiment_config,
+        "system": loaded_config.system,
+        "cli_args": vars(args),
+    }
+
+    wandb_logger = WandbLogger(
+        enabled=bool(tracking_config.get("use_wandb", False)),
+        project=str(tracking_config.get("project", "waste-detection-taco")),
+        entity=tracking_config.get("entity"),
+        run_name=f"{run_name}__{model_name}__classifier",
+        config=to_serializable(wandb_config),
+        group=tracking_config.get("group"),
+        tags=tracking_config.get("tags", []),
+        mode=tracking_config.get("mode"),
+        job_type="train_classifier",
+        notes=experiment_config.get("experiment", {}).get("description"),
         output_dir=output_dir,
-        device=device,
-        class_weights=class_weights,
-        wandb_run=None,
+        log_code=bool(tracking_config.get("log_code", False)),
     )
 
-    trainer.train()
+    with wandb_logger:
+        if bool(tracking_config.get("watch_model", False)):
+            wandb_logger.watch_model(model)
+
+        trainer = ClassifierTrainer(
+            model=model,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            class_names=data_config.classes.names,
+            experiment_config=experiment_config,
+            output_dir=output_dir,
+            device=device,
+            class_weights=class_weights,
+            wandb_run=wandb_logger.run,
+        )
+
+        history = trainer.train()
+
+        best_checkpoint_path = output_dir / "best.pth"
+
+        wandb_logger.log_summary(
+            {
+                "best_metric": trainer.best_metric,
+                "best_checkpoint": str(best_checkpoint_path),
+                "num_epochs_ran": len(history),
+                "model_name": model_name,
+                "run_name": run_name,
+            }
+        )
+
+        if bool(tracking_config.get("log_model", True)):
+            wandb_logger.log_artifact(
+                file_path=best_checkpoint_path,
+                artifact_name=f"{run_name}-{model_name}-classifier",
+                artifact_type="model",
+                aliases=["best", run_name],
+                metadata={
+                    "task": "crop_classification",
+                    "model": model_name,
+                    "num_classes": data_config.classes.num_classes,
+                    "class_names": data_config.classes.names,
+                    "best_metric": trainer.best_metric,
+                },
+            )
+
+    registry = ExperimentRegistry(
+        Path(loaded_config.system.project_root)
+        / "outputs"
+        / "metrics"
+        / "experiment_registry.json"
+    )
+
+    registry.add(
+        {
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+            "task": "train_classifier",
+            "model_name": model_name,
+            "run_name": run_name,
+            "output_dir": str(output_dir),
+            "best_checkpoint": str(output_dir / "best.pth"),
+            "wandb_enabled": bool(tracking_config.get("use_wandb", False)),
+            "wandb_mode": tracking_config.get("mode"),
+            "best_metric": getattr(trainer, "best_metric", None),
+        }
+    )
 
     logger.info("Huấn luyện classifier hoàn tất.")
     logger.info("Best checkpoint: %s", output_dir / "best.pth")
