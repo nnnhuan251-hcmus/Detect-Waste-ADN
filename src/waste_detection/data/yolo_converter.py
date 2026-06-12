@@ -1,5 +1,4 @@
 import logging
-import shutil
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -8,6 +7,7 @@ from typing import Any, Dict, List
 import yaml
 from tqdm import tqdm
 
+from waste_detection.utils.io import IOUtils
 from waste_detection.data.image_resolver import ImageResolver
 
 logger = logging.getLogger("YoloConverter")
