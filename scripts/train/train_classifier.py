@@ -10,6 +10,7 @@ from pathlib import Path
 from torch.utils.data import DataLoader
 
 # 3. Thư viện nội bộ của dự án
+from waste_detection.data.samplers import SamplerFactory
 from waste_detection.config.config_loader import ConfigLoader
 from waste_detection.data.crop_dataset import CropClassificationDataset
 from waste_detection.data.transforms import ClassifierTransformFactory
@@ -158,10 +159,19 @@ def main() -> None:
     batch_size = int(training_config.get("batch_size", 16))
     num_workers = int(training_config.get("num_workers", 2))
 
+    sampler_config = experiment_config.get("sampler", {})
+
+    train_sampler = SamplerFactory.build_classification_sampler(
+        dataset=train_dataset,
+        sampler_config=sampler_config,
+        seed=seed,
+    )
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
         num_workers=num_workers,
         pin_memory=True,
     )
