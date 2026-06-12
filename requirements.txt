@@ -4,6 +4,7 @@
 torch
 torchvision
 torchaudio
+opencv-python
 
 # ============================================================
 # Detection / model zoo
