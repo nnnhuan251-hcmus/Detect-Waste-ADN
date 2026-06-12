@@ -105,6 +105,12 @@ def main() -> None:
 
     output_root = Path(loaded_config.system.project_root) / "outputs" / "metrics" / "detector"
 
+    weights_path = Path(args.weights)
+    if not weights_path.exists():
+        raise FileNotFoundError(f"Không tìm thấy detector weights: {weights_path}")
+    
+    model_config.setdefault("detector", {})["weights"] = str(weights_path)
+
     trainer = DetectorTrainer(
         model_config=model_config,
         experiment_config=experiment_config,
@@ -112,8 +118,9 @@ def main() -> None:
         output_root=output_root,
     )
 
+    # Cập nhật tham số truyền vào hàm validate
     metrics = trainer.validate(
-        weights_path=args.weights,
+        weights_path=weights_path, # Truyền biến Path đã kiểm tra thay vì args.weights
         split=args.split,
     )
 
