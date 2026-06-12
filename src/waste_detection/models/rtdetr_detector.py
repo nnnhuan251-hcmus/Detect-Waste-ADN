@@ -41,6 +41,10 @@ class RTDETRDetector(DetectorBase):
         logger.info("Bắt đầu validate RT-DETR với args: %s", kwargs)
         return self.model.val(**kwargs)
 
-    def predict(self, source: str | Path, **kwargs) -> Any:
-        logger.info("Bắt đầu predict RT-DETR. Source: %s", source)
-        return self.model.predict(source=str(source), **kwargs)
+    def predict(self, source: Any, **kwargs) -> Any:
+        logger.info("Bắt đầu predict RT-DETR. Source type: %s", type(source))
+
+        if isinstance(source, (str, Path)):
+            source = str(source)
+
+        return self.model.predict(source=source, **kwargs)
