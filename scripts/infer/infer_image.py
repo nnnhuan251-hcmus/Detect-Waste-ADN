@@ -72,7 +72,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
     )
 
-        parser.add_argument(
+    parser.add_argument(
         "--use-tta",
         action="store_true",
         help="Bật test-time augmentation cho detector.",
