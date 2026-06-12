@@ -135,7 +135,7 @@ class CropDatasetBuilder:
         auto_write_metadata: bool,
     ) -> tuple[CropBuildReport, List[Dict[str, Any]]]:
         split_output_dir = self.output_root / split_name
-        split_output_dir.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(split_output_dir)
 
         images = dataset.get("images", [])
         annotations = dataset.get("annotations", [])
@@ -149,7 +149,7 @@ class CropDatasetBuilder:
         output_class_names = self.class_names or sorted(set(category_id_to_name.values()))
 
         for class_name in output_class_names:
-            (split_output_dir / class_name).mkdir(parents=True, exist_ok=True)
+            IOUtils.ensure_dir(split_output_dir / class_name)True)
 
         annotations_by_image_id: Dict[int, List[Dict[str, Any]]] = {}
 
@@ -191,9 +191,10 @@ class CropDatasetBuilder:
                 report.missing_files.append(str(file_name))
                 continue
 
-            image_array = cv2.imread(str(resolved_image_path))
-
-            if image_array is None:
+            try:
+                image_array = IOUtils.load_image_bgr(resolved_image_path)
+            except (FileNotFoundError, ValueError):
+                logger.exception("Không đọc được ảnh crop source: %s", resolved_image_path)
                 report.num_missing_images += 1
                 report.missing_files.append(str(file_name))
                 continue
