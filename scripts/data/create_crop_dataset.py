@@ -74,10 +74,14 @@ def main() -> None:
 
     crop_builder = CropDatasetBuilder(
         output_root=data_config.paths.crops_7class_dir,
+        class_names=data_config.classes.names,
         margin_ratio=data_config.crop_dataset.include_context_margin,
         min_crop_size=data_config.crop_dataset.min_crop_size,
         save_format=data_config.crop_dataset.save_format,
         jpeg_quality=data_config.crop_dataset.jpeg_quality,
+        
+        # dù một split nào đó thiếu class hiếm, thư mục class vẫn được tạo đầy đủ theo 7 class chuẩn.
+        write_metadata_csv=False,
     )
 
     all_reports = {}
