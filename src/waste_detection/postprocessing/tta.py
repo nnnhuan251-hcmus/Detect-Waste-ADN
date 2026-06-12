@@ -1,76 +1,66 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Tuple
+
+import cv2
+import numpy as np
+
+from waste_detection.inference.detector_predictor import DetectionPrediction
+from waste_detection.postprocessing.bbox_utils import BBoxUtils
 
 
-class BBoxUtils:
+class HorizontalFlipTTA:
     """
-    Utility functions for xyxy bounding boxes.
+    Test-time augmentation đơn giản cho detector:
+    - original image
+    - horizontal flipped image
+
+    Sau predict trên ảnh flip, bbox được restore về hệ tọa độ ảnh gốc.
     """
 
-    @staticmethod
-    def clip_xyxy(
-        box: List[float],
-        image_width: int,
-        image_height: int,
-    ) -> List[float]:
-        x1, y1, x2, y2 = map(float, box)
+    ORIGINAL = "original"
+    HFLIP = "hflip"
 
-        x1 = max(0.0, min(x1, float(image_width)))
-        y1 = max(0.0, min(y1, float(image_height)))
-        x2 = max(0.0, min(x2, float(image_width)))
-        y2 = max(0.0, min(y2, float(image_height)))
-
-        return [x1, y1, x2, y2]
-
-    @staticmethod
-    def normalize_xyxy(
-        box: List[float],
-        image_width: int,
-        image_height: int,
-    ) -> List[float]:
-        x1, y1, x2, y2 = BBoxUtils.clip_xyxy(
-            box=box,
-            image_width=image_width,
-            image_height=image_height,
-        )
-
+    def create_views(self, image_bgr: np.ndarray) -> List[Tuple[str, np.ndarray]]:
         return [
-            x1 / float(image_width),
-            y1 / float(image_height),
-            x2 / float(image_width),
-            y2 / float(image_height),
+            (self.ORIGINAL, image_bgr),
+            (self.HFLIP, cv2.flip(image_bgr, 1)),
         ]
 
-    @staticmethod
-    def denormalize_xyxy(
-        box: List[float],
+    def restore_predictions(
+        self,
+        view_name: str,
+        predictions: List[DetectionPrediction],
         image_width: int,
         image_height: int,
-    ) -> List[float]:
-        x1, y1, x2, y2 = map(float, box)
+    ) -> List[DetectionPrediction]:
+        restored_predictions: List[DetectionPrediction] = []
 
-        denormalized = [
-            x1 * float(image_width),
-            y1 * float(image_height),
-            x2 * float(image_width),
-            y2 * float(image_height),
-        ]
+        for prediction in predictions:
+            if view_name == self.ORIGINAL:
+                restored_box = prediction.xyxy
 
-        return BBoxUtils.clip_xyxy(
-            box=denormalized,
-            image_width=image_width,
-            image_height=image_height,
-        )
+            elif view_name == self.HFLIP:
+                restored_box = BBoxUtils.flip_xyxy_horizontal(
+                    box=prediction.xyxy,
+                    image_width=image_width,
+                )
 
-    @staticmethod
-    def flip_xyxy_horizontal(
-        box: List[float],
-        image_width: int,
-    ) -> List[float]:
-        x1, y1, x2, y2 = map(float, box)
+            else:
+                raise ValueError(f"TTA view không hợp lệ: {view_name}")
 
-        flipped_x1 = float(image_width) - x2
-        flipped_x2 = float(image_width) - x1
+            restored_box = BBoxUtils.clip_xyxy(
+                box=restored_box,
+                image_width=image_width,
+                image_height=image_height,
+            )
 
-        return [flipped_x1, y1, flipped_x2, y2]
+            restored_predictions.append(
+                DetectionPrediction(
+                    xyxy=restored_box,
+                    confidence=prediction.confidence,
+                    class_id=prediction.class_id,
+                )
+            )
+
+        return restored_predictions
