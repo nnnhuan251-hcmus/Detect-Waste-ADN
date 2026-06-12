@@ -131,7 +131,7 @@ class ClassifierTrainer(TrainerBase):
             )
 
             if self.wandb_run is not None:
-                self.wandb_run.log(epoch_record)
+                self.wandb_run.log(epoch_record, step=epoch + 1)
 
             improved = self._save_if_best(val_metrics)
 
