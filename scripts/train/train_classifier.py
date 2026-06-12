@@ -3,9 +3,11 @@ from __future__ import annotations
 import argparse
 import logging
 from pathlib import Path
-
+from datetime import datetime
 from torch.utils.data import DataLoader
 
+from waste_detection.tracking.experiment_registry import ExperimentRegistry
+from waste_detection.tracking.wandb_logger import WandbLogger, to_serializable
 from waste_detection.config.config_loader import ConfigLoader
 from waste_detection.data.crop_dataset import CropClassificationDataset
 from waste_detection.data.transforms import ClassifierTransformFactory
