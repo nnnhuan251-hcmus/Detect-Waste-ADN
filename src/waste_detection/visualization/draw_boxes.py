@@ -5,6 +5,8 @@ from typing import Any, Dict, List
 
 import cv2
 
+from waste_detection.utils.io import IOUtils
+
 
 class BoxDrawer:
     """
@@ -20,10 +22,7 @@ class BoxDrawer:
         image_path = Path(image_path)
         save_path = Path(save_path)
 
-        image = cv2.imread(str(image_path))
-
-        if image is None:
-            raise FileNotFoundError(f"Không đọc được ảnh: {image_path}")
+        image = IOUtils.load_image_bgr(image_path)
 
         for prediction in predictions:
             xyxy = prediction["xyxy"]
@@ -43,8 +42,7 @@ class BoxDrawer:
                 text=display_text,
             )
 
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        cv2.imwrite(str(save_path), image)
+        IOUtils.save_image_bgr(save_path, image)
 
         return save_path
 
