@@ -23,24 +23,57 @@ class ClassificationMetrics:
         y_pred: List[int],
         class_names: List[str],
     ) -> Dict:
+        labels = list(range(len(class_names)))
+
         return {
             "accuracy": float(accuracy_score(y_true, y_pred)),
-            "macro_f1": float(f1_score(y_true, y_pred, average="macro", zero_division=0)),
+            "macro_f1": float(
+                f1_score(
+                    y_true,
+                    y_pred,
+                    labels=labels,
+                    average="macro",
+                    zero_division=0,
+                )
+            ),
             "weighted_f1": float(
-                f1_score(y_true, y_pred, average="weighted", zero_division=0)
+                f1_score(
+                    y_true,
+                    y_pred,
+                    labels=labels,
+                    average="weighted",
+                    zero_division=0,
+                )
             ),
             "macro_precision": float(
-                precision_score(y_true, y_pred, average="macro", zero_division=0)
+                precision_score(
+                    y_true,
+                    y_pred,
+                    labels=labels,
+                    average="macro",
+                    zero_division=0,
+                )
             ),
             "macro_recall": float(
-                recall_score(y_true, y_pred, average="macro", zero_division=0)
+                recall_score(
+                    y_true,
+                    y_pred,
+                    labels=labels,
+                    average="macro",
+                    zero_division=0,
+                )
             ),
             "classification_report": classification_report(
                 y_true,
                 y_pred,
+                labels=labels,
                 target_names=class_names,
                 zero_division=0,
                 output_dict=True,
             ),
-            "confusion_matrix": confusion_matrix(y_true, y_pred).tolist(),
+            "confusion_matrix": confusion_matrix(
+                y_true,
+                y_pred,
+                labels=labels,
+            ).tolist(),
         }
