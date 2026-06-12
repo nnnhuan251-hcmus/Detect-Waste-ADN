@@ -98,7 +98,15 @@ def main() -> None:
         all_metadata_rows.extend(metadata_rows)
 
     if data_config.crop_dataset.write_metadata_csv:
-        crop_builder.write_metadata_csv(all_metadata_rows)
+        metadata_path = data_config.paths.crops_7class_dir / "crops_metadata.csv"
+
+        crop_builder.write_metadata_csv(
+            metadata_rows=all_metadata_rows,
+            output_path=metadata_path,
+        )
+
+        for split_report in all_reports.values():
+            split_report["metadata_path"] = str(metadata_path)
 
     IOUtils.save_json(
         data_config.paths.crops_7class_dir / "crop_build_report.json",
