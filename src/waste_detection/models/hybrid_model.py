@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
 
+from waste_detection.utils.io import IOUtils
 
 @dataclass
 class HybridModelInfo:
@@ -113,12 +114,12 @@ class HybridWasteModel:
         return self.info.to_dict()
 
     def save_description(self, save_path: str | Path) -> Path:
-        import json
-
         save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with save_path.open("w", encoding="utf-8") as file:
-            json.dump(self.describe(), file, indent=2, ensure_ascii=False)
-
+    
+        IOUtils.save_json(
+            dest_path=save_path,
+            data=self.describe(),
+            indent=2,
+        )
+    
         return save_path
