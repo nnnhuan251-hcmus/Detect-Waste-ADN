@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,25 +11,37 @@ from PIL import Image
 class ErrorVisualizer:
     """
     Visualization utilities for classification evaluation.
+
+    Supported dataset types:
+    - CropClassificationDataset / ImageFolder-like dataset with `.samples`
+    - torch.utils.data.Subset wrapping a dataset with `.samples`
     """
 
     @staticmethod
-    def _get_image_path(dataset, index: int) -> Path | str:
+    def _get_image_path(dataset: Any, index: int) -> Path:
         """
-        Trích xuất đường dẫn ảnh an toàn, hỗ trợ cả torchvision ImageFolder 
-        và torch.utils.data.Subset (thường gặp khi split train/val).
+        Safely extract image path from dataset.
+
+        This supports:
+        - dataset.samples[index] = (image_path, label)
+        - torch.utils.data.Subset(dataset, indices)
+        - nested Subset objects
         """
-        if hasattr(dataset, "samples"):
-            return dataset.samples[index][0]
-        elif hasattr(dataset, "dataset") and hasattr(dataset, "indices"):
-            # Xử lý trường hợp dataset bị bọc bởi Subset
-            real_index = dataset.indices[index]
-            return dataset.dataset.samples[real_index][0]
-        else:
-            raise AttributeError(
-                "Dataset không hỗ trợ trích xuất đường dẫn ảnh. "
-                "Cần có thuộc tính '.samples' (như ImageFolder)."
-            )
+        current_dataset = dataset
+        current_index = index
+
+        while hasattr(current_dataset, "dataset") and hasattr(current_dataset, "indices"):
+            current_index = int(current_dataset.indices[current_index])
+            current_dataset = current_dataset.dataset
+
+        if hasattr(current_dataset, "samples"):
+            image_path = current_dataset.samples[current_index][0]
+            return Path(image_path)
+
+        raise AttributeError(
+            "Dataset không hỗ trợ trích xuất đường dẫn ảnh. "
+            "Cần có thuộc tính `.samples` dạng List[(image_path, label)]."
+        )
 
     @staticmethod
     def plot_confusion_matrix(
@@ -42,9 +54,13 @@ class ErrorVisualizer:
 
         matrix = np.asarray(confusion_matrix)
 
+        if matrix.ndim != 2:
+            raise ValueError(
+                f"confusion_matrix phải là ma trận 2 chiều. Shape hiện tại={matrix.shape}"
+            )
+
         fig, ax = plt.subplots(figsize=(9, 8))
-        # Thêm cmap='viridis' hoặc 'Blues' để màu sắc hiện đại hơn
-        im = ax.imshow(matrix, interpolation="nearest", cmap="viridis")
+        image = ax.imshow(matrix, interpolation="nearest", cmap="viridis")
 
         ax.set_xticks(np.arange(len(class_names)))
         ax.set_yticks(np.arange(len(class_names)))
@@ -55,22 +71,23 @@ class ErrorVisualizer:
         ax.set_ylabel("True class")
         ax.set_title("Confusion Matrix")
 
-        # Đổi màu chữ để dễ đọc
-        threshold = matrix.max() / 2 if matrix.size > 0 else 0
-        for i in range(matrix.shape[0]):
-            for j in range(matrix.shape[1]):
-                val = matrix[i, j]
-                text_color = "white" if val > threshold else "black"
+        threshold = matrix.max() / 2.0 if matrix.size > 0 else 0.0
+
+        for row_index in range(matrix.shape[0]):
+            for col_index in range(matrix.shape[1]):
+                value = matrix[row_index, col_index]
+                text_color = "white" if value > threshold else "black"
+
                 ax.text(
-                    j,
-                    i,
-                    str(val),
+                    col_index,
+                    row_index,
+                    str(value),
                     ha="center",
                     va="center",
                     color=text_color,
                 )
 
-        fig.colorbar(im, ax=ax)
+        fig.colorbar(image, ax=ax)
         fig.tight_layout()
         fig.savefig(save_path, dpi=300)
         plt.close(fig)
@@ -79,7 +96,7 @@ class ErrorVisualizer:
 
     @staticmethod
     def plot_wrong_predictions(
-        dataset,
+        dataset: Any,
         y_true: List[int],
         y_pred: List[int],
         class_names: List[str],
@@ -89,6 +106,14 @@ class ErrorVisualizer:
         save_path = Path(save_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
 
+        if len(y_true) != len(y_pred):
+            raise ValueError(
+                f"len(y_true) phải bằng len(y_pred). "
+                f"Got len(y_true)={len(y_true)}, len(y_pred)={len(y_pred)}"
+            )
+
+        max_samples = max(1, int(max_samples))
+
         wrong_indices = [
             index
             for index, (true_label, pred_label) in enumerate(zip(y_true, y_pred))
@@ -97,13 +122,12 @@ class ErrorVisualizer:
 
         wrong_indices = wrong_indices[:max_samples]
 
-        # Xử lý an toàn khi mô hình dự đoán đúng 100%
         if not wrong_indices:
             fig, ax = plt.subplots(figsize=(6, 4))
             ax.text(
                 0.5,
                 0.5,
-                "No wrong predictions 🎉",
+                "No wrong predictions",
                 ha="center",
                 va="center",
                 fontsize=14,
@@ -124,7 +148,6 @@ class ErrorVisualizer:
             figsize=(4 * num_cols, 4 * num_rows),
         )
 
-        # Chuyển đổi axes thành mảng 1D để dễ lặp qua (kể cả khi chỉ có 1 ảnh)
         axes = np.asarray(axes).reshape(-1)
 
         for ax in axes:
@@ -133,21 +156,21 @@ class ErrorVisualizer:
         for plot_index, sample_index in enumerate(wrong_indices):
             ax = axes[plot_index]
 
-            # Sử dụng hàm helper an toàn thay vì truy cập trực tiếp
             image_path = ErrorVisualizer._get_image_path(dataset, sample_index)
-            image = Image.open(image_path).convert("RGB")
+
+            with Image.open(image_path) as image:
+                image_rgb = image.convert("RGB")
 
             true_label = int(y_true[sample_index])
             pred_label = int(y_pred[sample_index])
 
-            ax.imshow(image)
-            
-            # Sử dụng màu đỏ cho tiêu đề để nhấn mạnh đây là lỗi
+            ax.imshow(image_rgb)
             ax.set_title(
                 f"True: {class_names[true_label]}\nPred: {class_names[pred_label]}",
                 fontsize=10,
                 color="red",
             )
+            ax.axis("off")
 
         fig.tight_layout()
         fig.savefig(save_path, dpi=300)
