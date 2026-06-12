@@ -118,6 +118,9 @@ def main() -> None:
         map_location=device,
     )
 
+    # Tạo thư mục lưu trữ kết quả riêng biệt cho từng lần chạy
+    run_name = Path(args.weights).parent.name
+
     if checkpoint_class_names and checkpoint_class_names != data_config.classes.names:
         logger.warning(
             "Class names trong checkpoint khác data config. checkpoint=%s, config=%s",
@@ -175,6 +178,7 @@ def main() -> None:
         / "outputs"
         / "metrics"
         / "classifier"
+        / run_name
         / args.split
     )
 
@@ -190,12 +194,18 @@ def main() -> None:
         output_dir / "error_analysis.json",
         error_report.to_dict(),
     )
+
+    IOUtils.save_json(
+        output_dir / "wrong_predictions.json",
+        error_report.wrong_predictions,
+    )
     
     figures_dir = (
         Path(loaded_config.system.project_root)
         / "outputs"
         / "figures"
         / "classifier"
+        / run_name
         / args.split
     )
     
