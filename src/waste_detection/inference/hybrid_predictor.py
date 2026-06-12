@@ -19,6 +19,8 @@ from waste_detection.inference.detector_predictor import (
 )
 from waste_detection.inference.predictor_base import PredictorBase
 
+from waste_detection.postprocessing.tta import HorizontalFlipTTA
+from waste_detection.postprocessing.wbf import WeightedBoxesFusionPostProcessor
 
 logger = logging.getLogger("HybridPredictor")
 
@@ -71,12 +73,22 @@ class HybridPredictor(PredictorBase):
         final_confidence_rule: str = "multiply",
         final_confidence_threshold: float = 0.25,
         device: torch.device | str = "cpu",
+
+        use_tta: bool = False,
+        use_wbf: bool = False,
+        wbf_iou_threshold: float = 0.55,
+        wbf_skip_box_threshold: float = 0.001,
     ) -> None:
         self.class_names = class_names
         self.crop_margin = crop_margin
         self.final_confidence_rule = final_confidence_rule
         self.final_confidence_threshold = final_confidence_threshold
         self.device = torch.device(device)
+
+        self.use_tta = bool(use_tta)
+        self.use_wbf = bool(use_wbf)
+        self.wbf_iou_threshold = float(wbf_iou_threshold)
+        self.wbf_skip_box_threshold = float(wbf_skip_box_threshold)
 
         self.detector = DetectorPredictor(
             weights_path=detector_weights,
@@ -105,7 +117,18 @@ class HybridPredictor(PredictorBase):
 
         image_height, image_width = image_bgr.shape[:2]
 
-        detections = self.detector.predict(image_path)
+        use_tta = bool(kwargs.get("use_tta", self.use_tta))
+        use_wbf = bool(kwargs.get("use_wbf", self.use_wbf))
+
+        if use_tta:
+            detections = self._predict_detector_with_tta(
+                image_bgr=image_bgr,
+                image_width=image_width,
+                image_height=image_height,
+                use_wbf=use_wbf,
+            )
+        else:
+            detections = self.detector.predict(image_path)
 
         hybrid_predictions: List[HybridPrediction] = []
 
@@ -149,7 +172,51 @@ class HybridPredictor(PredictorBase):
         )
 
         return hybrid_predictions
+        
+    def _predict_detector_with_tta(
+        self,
+        image_bgr: np.ndarray,
+        image_width: int,
+        image_height: int,
+        use_wbf: bool,
+    ) -> List[DetectionPrediction]:
+        tta = HorizontalFlipTTA()
+        predictions_per_view: List[List[DetectionPrediction]] = []
 
+        for view_name, view_image in tta.create_views(image_bgr):
+            view_predictions = self.detector.predict(view_image)
+
+            restored_predictions = tta.restore_predictions(
+                view_name=view_name,
+                predictions=view_predictions,
+                image_width=image_width,
+                image_height=image_height,
+            )
+
+            predictions_per_view.append(restored_predictions)
+
+        if use_wbf:
+            return WeightedBoxesFusionPostProcessor.fuse(
+                predictions_per_view=predictions_per_view,
+                image_width=image_width,
+                image_height=image_height,
+                iou_thr=self.wbf_iou_threshold,
+                skip_box_thr=self.wbf_skip_box_threshold,
+            )
+
+        flattened_predictions = [
+            prediction
+            for predictions in predictions_per_view
+            for prediction in predictions
+        ]
+
+        flattened_predictions.sort(
+            key=lambda prediction: prediction.confidence,
+            reverse=True,
+        )
+
+        return flattened_predictions
+        
     def _crop_from_detection(
         self,
         image_bgr: np.ndarray,
