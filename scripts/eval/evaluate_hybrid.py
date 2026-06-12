@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import torch
 import argparse
 import logging
 from pathlib import Path
@@ -99,6 +100,30 @@ def parse_args() -> argparse.Namespace:
         default=None,
     )
 
+    parser.add_argument(
+        "--use-tta",
+        action="store_true",
+        help="Bật test-time augmentation cho detector.",
+    )
+    
+    parser.add_argument(
+        "--use-wbf",
+        action="store_true",
+        help="Bật Weighted Boxes Fusion khi dùng TTA.",
+    )
+    
+    parser.add_argument(
+        "--wbf-iou-threshold",
+        type=float,
+        default=0.55,
+    )
+    
+    parser.add_argument(
+        "--wbf-skip-box-threshold",
+        type=float,
+        default=0.001,
+    )
+
     return parser.parse_args()
 
 
@@ -127,6 +152,24 @@ def main() -> None:
         clear_old_logs=True,
     )
 
+    # Thêm cảnh báo logic TTA và WBF
+    if args.use_wbf and not args.use_tta:
+        logger.warning(
+            "--use-wbf được bật nhưng --use-tta không bật. "
+            "WBF sẽ không có tác dụng trong evaluate_hybrid hiện tại."
+        )
+    
+    detector_weights = Path(args.detector_weights)
+    classifier_weights = Path(args.classifier_weights)
+
+    if not detector_weights.exists():
+        raise FileNotFoundError(f"Không tìm thấy detector weights: {detector_weights}")
+
+    if not classifier_weights.exists():
+        raise FileNotFoundError(
+            f"Không tìm thấy classifier weights: {classifier_weights}"
+        )
+        
     annotation_path = _get_split_annotation_path(data_config, args.split)
 
     dataset = CocoReader(annotation_path).load(
@@ -153,8 +196,8 @@ def main() -> None:
     )
 
     predictor = HybridPredictor(
-        detector_weights=args.detector_weights,
-        classifier_weights=args.classifier_weights,
+        detector_weights=detector_weights,
+        classifier_weights=classifier_weights,
         class_names=data_config.classes.names,
         detector_name=str(detector_config.get("name", "yolov8n")),
         detector_family=detector_config.get("family", None),
@@ -169,6 +212,10 @@ def main() -> None:
         final_confidence_threshold=float(
             hybrid_config.get("final_confidence_threshold", 0.25)
         ),
+        use_tta=args.use_tta,
+        use_wbf=args.use_wbf,
+        wbf_iou_threshold=args.wbf_iou_threshold,
+        wbf_skip_box_threshold=args.wbf_skip_box_threshold,
         device=device,
     )
 
@@ -213,8 +260,8 @@ def main() -> None:
         / args.split
     )
 
-    output_root.mkdir(parents=True, exist_ok=True)
-    figures_dir.mkdir(parents=True, exist_ok=True)
+    IOUtils.ensure_dir(output_root)
+    IOUtils.ensure_dir(figures_dir)
 
     visualization_count = 0
 
@@ -236,8 +283,14 @@ def main() -> None:
             )
             continue
 
+        if device.type == "cuda":
+            torch.cuda.synchronize()
+        
         with Timer() as timer:
             hybrid_predictions = predictor.predict(resolved_path)
+        
+        if device.type == "cuda":
+            torch.cuda.synchronize()
 
         inference_time = timer.elapsed_seconds or 0.0
         inference_times.append(inference_time)
@@ -263,7 +316,12 @@ def main() -> None:
         )
 
         if args.save_visualizations and visualization_count < args.max_visualizations:
-            save_path = figures_dir / f"{Path(file_name).stem}_hybrid_prediction.jpg"
+            # Tránh khi nhiều ảnh ở nhiều batch có cùng stem, có thể overwrite
+            safe_stem = str(file_name).replace("\\", "/").strip("/")
+            safe_stem = safe_stem.replace(":", "_").replace("/", "__")
+            safe_stem = Path(safe_stem).with_suffix("").name
+            
+            save_path = figures_dir / f"{image_id}_{Path(file_name).stem}_hybrid_prediction.jpg"
 
             BoxDrawer.draw_predictions(
                 image_path=resolved_path,
