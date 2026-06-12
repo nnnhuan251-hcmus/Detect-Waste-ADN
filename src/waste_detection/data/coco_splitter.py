@@ -68,10 +68,16 @@ class CocoSplitter:
                 f"Hiện tại = {total}"
             )
 
-        if strategy not in {"multilabel_stratified", "image_level", "random"}:
+        supported_strategies = {
+            "multilabel_stratified",
+            "image_level",
+            "random",
+        }
+
+        if strategy not in supported_strategies:
             raise ValueError(
-                "strategy không hợp lệ. "
-                "Chỉ hỗ trợ: multilabel_stratified, image_level, random."
+                f"strategy không hợp lệ: {strategy}. "
+                f"Chỉ hỗ trợ: {sorted(supported_strategies)}"
             )
 
         self.train_ratio = train_ratio
@@ -110,12 +116,15 @@ class CocoSplitter:
                     len(images)
                 )
 
-        else:
+        elif self.strategy in {"image_level", "random"}:
             logger.info(
                 "Split strategy=%s. Dùng random image-level split.",
                 self.strategy,
             )
             train_indices, val_indices, test_indices = self._random_split(len(images))
+
+        else:
+            raise ValueError(f"strategy không hợp lệ: {self.strategy}")
 
         train_images = [images[index] for index in train_indices]
         val_images = [images[index] for index in val_indices]
