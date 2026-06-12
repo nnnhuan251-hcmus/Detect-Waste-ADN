@@ -118,6 +118,14 @@ class COCOValidator:
             width = image.get("width")
             height = image.get("height")
 
+            # Ép kiểu an toàn
+            try:
+                width = float(width_raw) if width_raw is not None else None
+                height = float(height_raw) if height_raw is not None else None
+            except ValueError:
+                report.errors.append(f"Image id={image_id} có width/height không phải là số: {width_raw}, {height_raw}")
+                continue
+
             if not file_name:
                 report.errors.append(f"Image id={image_id} thiếu file_name.")
 
@@ -179,8 +187,14 @@ class COCOValidator:
                     f"Annotation id={annotation_id} có bbox không hợp lệ: {bbox}"
                 )
                 continue
-
-            x, y, width, height = bbox
+            
+            # Ép kiểu an toàn cho toàn bộ phần tử trong bbox
+            try:
+                bbox = [float(v) for v in bbox]
+                x, y, width, height = bbox
+            except (ValueError, TypeError):
+                report.errors.append(f"Annotation id={annotation_id} có bbox chứa giá trị không thể chuyển thành số: {bbox}")
+                continue
 
             if width <= 0 or height <= 0:
                 report.errors.append(
