@@ -60,6 +60,11 @@ class ImageResolver:
     def resolve(self, file_name: str) -> Path | None:
         file_name_path = Path(file_name)
 
+        if file_name_path.is_absolute():
+            if file_name_path.exists() and file_name_path.is_file():
+                return file_name_path
+            return None
+
         direct_path = self.image_root / file_name_path
 
         if direct_path.exists() and direct_path.is_file():
