@@ -2,6 +2,7 @@ model:
   name: rtdetr_l
   type: detector_only
   description: RT-DETR-L detector trained directly on 7 waste classes.
+  note: "Using RT-DETR-L pretrained weights because RT-DETR-R18 pretrained weight is not verified in Ultralytics."
 
 detector:
   name: rtdetr_l
