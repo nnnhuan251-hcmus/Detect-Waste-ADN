@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import matplotlib.pyplot as plt
+
 from pathlib import Path
 from typing import Dict, List
 
-import matplotlib.pyplot as plt
+from waste_detection.utils.io import IOUtils
 
 
 class CurvePlotter:
@@ -21,7 +23,7 @@ class CurvePlotter:
         save_path: str | Path,
     ) -> Path:
         save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(save_path.parent)
 
         epochs = [record.get("epoch", index + 1) for index, record in enumerate(history)]
         train_values = [record.get(train_key) for record in history]
