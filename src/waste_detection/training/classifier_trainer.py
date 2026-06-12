@@ -272,27 +272,25 @@ class ClassifierTrainer(TrainerBase):
         lr = float(self.optimizer_config.get("lr", 1e-4))
         weight_decay = float(self.optimizer_config.get("weight_decay", 5e-4))
 
-        trainable_params = [
-            parameter for parameter in self.model.parameters() if parameter.requires_grad
-        ]
+        model_params = list(self.model.parameters())
 
         if optimizer_name == "adamw":
             return torch.optim.AdamW(
-                trainable_params,
+                model_params,
                 lr=lr,
                 weight_decay=weight_decay,
             )
 
         if optimizer_name == "adam":
             return torch.optim.Adam(
-                trainable_params,
+                model_params,
                 lr=lr,
                 weight_decay=weight_decay,
             )
 
         if optimizer_name == "sgd":
             return torch.optim.SGD(
-                trainable_params,
+                model_params,
                 lr=lr,
                 momentum=0.9,
                 weight_decay=weight_decay,
