@@ -1,6 +1,6 @@
 experiment:
   name: run2_strong_aug
-  description: Strong augmentation with orthogonal rotation for classifier, mosaic/color jitter for detector, and focal loss for classifier.
+  description: Strong augmentation using classifier-side orthogonal rotation, detector-side mosaic/color jitter, and focal loss for classifier.
   seed: 42
 
 data:
@@ -85,8 +85,13 @@ checkpoint:
 
 tracking:
   use_wandb: false
+  mode: disabled
   project: waste-detection-taco
+  entity: null
   group: ablation
+  log_code: false
+  log_model: true
+  watch_model: false
   tags:
     - strong_aug
     - focal_loss
