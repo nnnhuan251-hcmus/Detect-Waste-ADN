@@ -81,7 +81,16 @@ class HybridPredictor(PredictorBase):
     ) -> None:
         self.class_names = class_names
         self.crop_margin = crop_margin
+        
         self.final_confidence_rule = final_confidence_rule
+        supported_rules = {"multiply", "classifier", "detector", "average"}
+
+        if self.final_confidence_rule not in supported_rules:
+            raise ValueError(
+                f"final_confidence_rule không hợp lệ: {self.final_confidence_rule}. "
+                f"Chỉ hỗ trợ: {sorted(supported_rules)}"
+            )
+            
         self.final_confidence_threshold = final_confidence_threshold
         self.device = torch.device(device)
 
