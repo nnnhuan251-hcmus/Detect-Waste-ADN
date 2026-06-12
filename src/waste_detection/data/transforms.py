@@ -71,11 +71,16 @@ class ClassifierTransformFactory:
                         ],
                         p=0.7,
                     ),
-                    transforms.RandomChoice(
+                    transforms.RandomApply(
                         [
-                            transforms.RandomRotation((90, 90)),
-                            transforms.RandomRotation((180, 180)),
-                        ]
+                            transforms.RandomChoice(
+                                [
+                                    transforms.RandomRotation((90, 90)),
+                                    transforms.RandomRotation((180, 180)),
+                                ]
+                            )
+                        ],
+                        p=0.5,
                     ),
                 ]
             )
