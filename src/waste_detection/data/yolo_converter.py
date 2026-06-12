@@ -140,7 +140,7 @@ class YoloConverter:
             output_label_path = labels_dir / f"{safe_stem}.txt"
 
             if copy_images:
-                shutil.copy2(resolved_image_path, output_image_path)
+                IOUtils.copy_file(resolved_image_path, output_image_path)
 
             label_lines = []
 
