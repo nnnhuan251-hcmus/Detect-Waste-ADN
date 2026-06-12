@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import torch
+import time
 import argparse
 import logging
 from pathlib import Path
@@ -123,6 +125,12 @@ def main() -> None:
         clear_old_logs=True,
     )
 
+    if args.use_wbf and not args.use_tta:
+        logger.warning(
+            "--use-wbf được bật nhưng --use-tta không bật. "
+            "WBF sẽ không có tác dụng trong inference hiện tại."
+        )
+
     detector_weights = Path(args.detector_weights)
     classifier_weights = Path(args.classifier_weights)
     image_path = Path(args.image)
@@ -173,7 +181,23 @@ def main() -> None:
         device=device,
     )
 
+    logger.info("Đang tiến hành nhận diện ảnh: %s", image_path)
+
+    if device.type == "cuda":
+        torch.cuda.synchronize()
+
+    start_time = time.perf_counter()
+
     predictions = predictor.predict(image_path)
+
+    if device.type == "cuda":
+        torch.cuda.synchronize()
+
+    inference_time_seconds = time.perf_counter() - start_time
+    
+    # Bạn có thể log thêm thời gian ra console để dễ theo dõi
+    logger.info("Hoàn tất nhận diện! Thời gian xử lý: %.4f giây", inference_time_seconds)
+    
     prediction_dicts = [prediction.to_dict() for prediction in predictions]
 
     save_dir = Path(args.save_dir)
