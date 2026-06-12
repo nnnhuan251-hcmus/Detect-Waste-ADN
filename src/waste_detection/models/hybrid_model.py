@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 
 from waste_detection.utils.io import IOUtils
 
+
 @dataclass
 class HybridModelInfo:
     """
