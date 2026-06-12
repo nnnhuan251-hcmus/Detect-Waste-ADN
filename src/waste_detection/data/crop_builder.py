@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import csv
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List
 
-import cv2
 from tqdm import tqdm
 
 from waste_detection.data.image_resolver import ImageResolver
+from waste_detection.utils.io import IOUtils
 
 
 logger = logging.getLogger("CropDatasetBuilder")
