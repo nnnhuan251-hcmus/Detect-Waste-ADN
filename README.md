@@ -486,7 +486,19 @@ python scripts/eval/evaluate_hybrid.py \
 
 ## 11. Các Công Cụ Phân Tích & Chạy Nhanh (Được kế thừa từ our_pipeline)
 
-### 11.1 Kaggle 3-Stage Training Notebook (Tự động hóa hoàn toàn)
+### 11.1 Phân Tích Dữ Liệu Chuyên Sâu (EDA - Exploratory Data Analysis)
+
+Hệ thống cung cấp kiến trúc hướng đối tượng (`CocoEDAAnalyzer`) để phân tích tự động chất lượng dữ liệu COCO (TACO, Roboflow) trước khi huấn luyện.
+Bạn có thể chạy trực quan qua Notebook:
+`notebooks/eda_analysis.ipynb`
+
+Hoặc tự động lưu toàn bộ biểu đồ qua Terminal:
+```bash
+python scripts/data/run_eda.py
+```
+Các biểu đồ chuyên sâu sẽ được xuất ra `outputs/figures/eda/`, bao gồm 6 loại: Phân bố lớp, Kích thước BBox, Histogram số vật thể/ảnh, Bản đồ nhiệt vị trí, Tỉ lệ khung hình Anchor, và Ma trận đồng xuất hiện.
+
+### 11.2 Kaggle 3-Stage Training Notebook (Tự động hóa hoàn toàn)
 
 Dự án cung cấp một Jupyter Notebook tự động hóa hoàn toàn (`notebooks/kaggle_runner.ipynb` và `adn-v1.ipynb`) xử lý toàn bộ quy trình qua 3 giai đoạn:
 
@@ -496,7 +508,7 @@ Dự án cung cấp một Jupyter Notebook tự động hóa hoàn toàn (`noteb
 
 Notebook này giúp người dùng dễ dàng tái lập lại toàn bộ các thực nghiệm chỉ với một thao tác "Run All".
 
-### 11.2 Chạy Nhận Diện Siêu Tốc (Easy Inference)
+### 11.3 Chạy Nhận Diện Siêu Tốc (Easy Inference)
 
 Bạn không cần truyền các file cấu hình YAML phức tạp. Chỉ cần dùng kịch bản sau để chạy nhanh một bức ảnh:
 
@@ -509,7 +521,7 @@ python scripts/easy_infer.py \
 ```
 Kết quả trực quan (Bounding Box + Nhãn + Độ tin cậy) sẽ được lưu thẳng thành `inference_result.jpg`.
 
-### 11.2 Bản Đồ Nhiệt Giải Thích (XAI - Grad-CAM)
+### 11.4 Bản Đồ Nhiệt Giải Thích (XAI - Grad-CAM)
 
 Đây là công cụ giúp bạn ghi điểm tuyệt đối trong báo cáo. Nó sẽ vẽ bản đồ nhiệt cho thấy mạng CNN đang "nhìn" vào điểm nào trên cục rác để phân loại.
 
@@ -521,7 +533,7 @@ python scripts/eval/run_xai.py \
 ```
 Hệ thống sẽ tự cắt ảnh và lưu biểu đồ vào `test_heatmap_gradcam.png`.
 
-### 11.3 So Sánh Kiến Trúc (Ablation Comparison)
+### 11.5 So Sánh Kiến Trúc (Ablation Comparison)
 
 Hiển thị trực quan sự khác biệt giữa việc: Truyền thẳng ảnh vào CNN (bị nhiễu hậu cảnh) VS Việc dùng YOLO cắt rác rồi mới phân loại.
 
