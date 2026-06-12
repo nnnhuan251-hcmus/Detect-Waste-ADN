@@ -1,6 +1,5 @@
 import argparse
 import logging
-from pathlib import Path
 
 from waste_detection.config.config_loader import ConfigLoader
 from waste_detection.data.coco_reader import CocoReader
@@ -80,8 +79,8 @@ def main() -> None:
 
     summary = CocoReader.summarize(dataset)
 
-    output_dir = Path(loader.project_root) / "outputs" / "metrics"
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = loaded_config.system.project_root / "outputs" / "metrics" / "data" / "check_coco"
+    IOUtils.ensure_dir(output_dir)
 
     IOUtils.save_json(
         output_dir / "check_coco_summary.json",
