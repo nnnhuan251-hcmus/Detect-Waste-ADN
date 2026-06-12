@@ -75,7 +75,7 @@ mapping:
   fail_on_unmapped: true
 
 split:
-  strategy: image_level
+  strategy: multilabel_stratified
   train_ratio: 0.70
   val_ratio: 0.15
   test_ratio: 0.15
