@@ -139,7 +139,7 @@ class CocoEDAAnalyzer:
         plt.title(f'Objects per Image - {self.dataset_name}')
         plt.xlabel('Number of Objects')
         plt.ylabel('Frequency (Images)')
-        plt.xticks(range(0, max(obj_counts) + 2))
+        # plt.xticks(range(0, max(obj_counts) + 2)) # Xóa dòng này để matplotlib tự giãn cách tick
         
         if save_dir:
             os.makedirs(save_dir, exist_ok=True)
