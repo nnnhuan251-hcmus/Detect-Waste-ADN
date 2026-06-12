@@ -156,6 +156,18 @@ def main() -> None:
         transform=eval_transform,
     )
 
+    if len(train_dataset) == 0:
+        raise RuntimeError(
+            f"Train crop dataset rỗng: {data_config.paths.crops_7class_dir / 'train'}. "
+            "Hãy chạy scripts/data/create_crop_dataset.py hoặc prepare_taco.py trước."
+        )
+
+    if len(val_dataset) == 0:
+        raise RuntimeError(
+            f"Val crop dataset rỗng: {data_config.paths.crops_7class_dir / 'val'}. "
+            "Hãy chạy scripts/data/create_crop_dataset.py hoặc prepare_taco.py trước."
+        )
+
     batch_size = int(training_config.get("batch_size", 16))
     num_workers = int(training_config.get("num_workers", 2))
 
@@ -187,6 +199,15 @@ def main() -> None:
     use_class_weighting = bool(
         experiment_config.get("loss", {}).get("class_weighting", False)
     )
+
+    sampler_enabled = bool(sampler_config.get("enabled", False))
+
+    if sampler_enabled and use_class_weighting:
+        logger.warning(
+            "Bạn đang bật cả weighted sampler và class weighting. "
+            "Điều này có thể over-correct class imbalance. "
+            "Khuyến nghị: thử từng kỹ thuật riêng trước."
+        )
 
     class_weights = train_dataset.get_class_weights() if use_class_weighting else None
 
