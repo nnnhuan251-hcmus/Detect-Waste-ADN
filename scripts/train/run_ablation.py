@@ -74,6 +74,27 @@ def parse_args() -> argparse.Namespace:
         default=None,
     )
 
+    parser.add_argument(
+        "--use-wandb",
+        action="store_true",
+        help="Bật W&B cho toàn bộ ablation commands.",
+    )
+
+    parser.add_argument(
+        "--wandb-mode",
+        type=str,
+        default=None,
+        choices=["online", "offline", "disabled"],
+        help="W&B mode cho toàn bộ ablation commands.",
+    )
+
+    parser.add_argument(
+        "--wandb-entity",
+        type=str,
+        default=None,
+        help="W&B entity/team/user.",
+    )
+
     return parser.parse_args()
 
 
@@ -94,12 +115,26 @@ def main() -> None:
 
     project_root = Path(loaded_config.system.project_root)
 
+    # 1. Khởi tạo và gom args wandb trước
+    extra_train_args: List[str] = []
+
+    if args.use_wandb:
+        extra_train_args.append("--use-wandb")
+
+    if args.wandb_mode is not None:
+        extra_train_args.extend(["--wandb-mode", args.wandb_mode])
+
+    if args.wandb_entity is not None:
+        extra_train_args.extend(["--wandb-entity", args.wandb_entity])
+
+    # 2. Truyền list này vào hàm build
     commands = build_ablation_commands(
         project_root=project_root,
         data_config=args.data_config,
         model_configs=args.model_configs,
         experiment_configs=args.experiment_configs,
         tasks=args.tasks,
+        extra_train_args=extra_train_args, # Thêm ở đây
     )
 
     output_path = (
@@ -145,7 +180,11 @@ def build_ablation_commands(
     model_configs: List[str],
     experiment_configs: List[str],
     tasks: List[str],
+    extra_train_args: List[str] | None = None,
 ) -> List[List[str]]:
+
+    extra_train_args = extra_train_args or []
+        
     commands: List[List[str]] = []
 
     for model_config_path in model_configs:
