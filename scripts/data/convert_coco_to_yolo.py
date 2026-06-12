@@ -43,6 +43,16 @@ def parse_args() -> argparse.Namespace:
         help="Bỏ qua tạo yolo_binary_waste.",
     )
 
+    # ============================================================================
+    # Lưu ý: khi train YOLO thật trên Kaggle thì không dùng --no-copy-images,
+    # vì Ultralytics cần ảnh nằm đúng trong images/train, images/val, images/test.
+    # ============================================================================
+    parser.add_argument(
+        "--no-copy-images",
+        action="store_true",
+        help="Chỉ tạo YOLO label files, không copy ảnh sang thư mục YOLO output.",
+    )
+
     return parser.parse_args()
 
 
@@ -102,7 +112,7 @@ def main() -> None:
                 dataset=split_dataset,
                 split_name=split_name,
                 image_resolver=resolver,
-                copy_images=True,
+                copy_images=not args.no_copy_images,
             )
             all_reports["yolo_7class"][split_name] = report.to_dict()
 
@@ -111,7 +121,7 @@ def main() -> None:
     if not args.skip_binary:
         binary_converter = YoloConverter(
             output_root=data_config.paths.yolo_binary_waste_dir,
-            class_names=["waste"],
+            class_names=data_config.classes.names,
             binary=True,
             binary_class_name="waste",
             min_box_width=data_config.bbox.min_width,
@@ -125,7 +135,7 @@ def main() -> None:
                 dataset=split_dataset,
                 split_name=split_name,
                 image_resolver=resolver,
-                copy_images=True,
+                copy_images=not args.no_copy_images,
             )
             all_reports["yolo_binary_waste"][split_name] = report.to_dict()
 
