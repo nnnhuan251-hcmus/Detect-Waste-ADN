@@ -202,39 +202,48 @@ def main() -> None:
             )
 
         if bool(tracking_config.get("log_model", True)):
-            wandb_logger.log_artifact(
-                file_path=best_weight_path,
-                artifact_name=f"{run_name}-{model_name}-detector-best",
-                artifact_type="model",
-                aliases=["best", run_name],
-                metadata={
-                    "task": "object_detection",
-                    "model": model_name,
-                    "detector_mode": detector_mode,
-                    "data_yaml_path": str(data_yaml_path),
-                },
-            )
+            if best_weight_path.exists():
+                wandb_logger.log_artifact(
+                    file_path=best_weight_path,
+                    artifact_name=f"{run_name}-{model_name}-detector-best",
+                    artifact_type="model",
+                    aliases=["best", run_name],
+                    metadata={
+                        "task": "object_detection",
+                        "model": model_name,
+                        "detector_mode": detector_mode,
+                        "data_yaml_path": str(data_yaml_path),
+                    },
+                )
+            else:
+                logger.warning("Không tìm thấy best detector checkpoint: %s", best_weight_path)
 
-            wandb_logger.log_artifact(
-                file_path=last_weight_path,
-                artifact_name=f"{run_name}-{model_name}-detector-last",
-                artifact_type="model",
-                aliases=["last", run_name],
-                metadata={
-                    "task": "object_detection",
-                    "model": model_name,
-                    "detector_mode": detector_mode,
-                    "data_yaml_path": str(data_yaml_path),
-                },
-            )
+            if last_weight_path.exists():
+                wandb_logger.log_artifact(
+                    file_path=last_weight_path,
+                    artifact_name=f"{run_name}-{model_name}-detector-last",
+                    artifact_type="model",
+                    aliases=["last", run_name],
+                    metadata={
+                        "task": "object_detection",
+                        "model": model_name,
+                        "detector_mode": detector_mode,
+                        "data_yaml_path": str(data_yaml_path),
+                    },
+                )
+            else:
+                logger.warning("Không tìm thấy last detector checkpoint: %s", last_weight_path)
 
-        wandb_logger.log_artifact(
-            file_path=train_summary_path,
-            artifact_name=f"{run_name}-{model_name}-detector-summary",
-            artifact_type="metadata",
-            aliases=[run_name],
-            metadata=summary,
-        )
+        if train_summary_path.exists():
+            wandb_logger.log_artifact(
+                file_path=train_summary_path,
+                artifact_name=f"{run_name}-{model_name}-detector-summary",
+                artifact_type="metadata",
+                aliases=[run_name],
+                metadata=summary,
+            )
+        else:
+            logger.warning("Không tìm thấy train summary file: %s", train_summary_path)
 
     registry = ExperimentRegistry(
         Path(loaded_config.system.project_root)
