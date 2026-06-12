@@ -18,7 +18,10 @@ class SchedulerFactory:
         total_epochs: int,
     ):
         enabled = bool(scheduler_config.get("enabled", False))
-        scheduler_name = scheduler_config.get("name", "constant")
+        scheduler_name = str(scheduler_config.get("name", "constant")).lower().strip()
+
+        if total_epochs <= 0:
+            raise ValueError("total_epochs phải > 0.")
 
         if not enabled or scheduler_name == "constant":
             return None
@@ -33,6 +36,14 @@ class SchedulerFactory:
 
             base_lr = optimizer.param_groups[0]["lr"]
             min_lr_ratio = min_lr / base_lr if base_lr > 0 else 0.0
+
+            if min_lr < 0:
+                raise ValueError("scheduler.cosine.min_lr không được âm.")
+            
+            if base_lr > 0 and min_lr > base_lr:
+                raise ValueError(
+                    f"scheduler.cosine.min_lr={min_lr} lớn hơn base_lr={base_lr}."
+                )
 
             def lr_lambda(epoch: int) -> float:
                 if warmup_enabled and warmup_epochs > 0 and epoch < warmup_epochs:
