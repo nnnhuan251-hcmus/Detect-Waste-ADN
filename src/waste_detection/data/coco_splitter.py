@@ -58,6 +58,7 @@ class CocoSplitter:
         test_ratio: float,
         seed: int = 42,
         shuffle: bool = True,
+        strategy: str = "multilabel_stratified",
     ) -> None:
         total = train_ratio + val_ratio + test_ratio
 
@@ -67,11 +68,18 @@ class CocoSplitter:
                 f"Hiện tại = {total}"
             )
 
+        if strategy not in {"multilabel_stratified", "image_level", "random"}:
+            raise ValueError(
+                "strategy không hợp lệ. "
+                "Chỉ hỗ trợ: multilabel_stratified, image_level, random."
+            )
+
         self.train_ratio = train_ratio
         self.val_ratio = val_ratio
         self.test_ratio = test_ratio
         self.seed = seed
         self.shuffle = shuffle
+        self.strategy = strategy
 
     def split(self, dataset: Dict[str, Any]) -> Tuple[Dict[str, Dict[str, Any]], SplitReport]:
         images = list(dataset.get("images", []))
