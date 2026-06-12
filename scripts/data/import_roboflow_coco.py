@@ -50,6 +50,20 @@ def parse_args() -> argparse.Namespace:
         help="Raise error nếu có category chưa được map.",
     )
 
+    parser.add_argument(
+        "--output-coco-dir",
+        type=str,
+        default=None,
+        help="Thư mục xuất COCO 7-class sau khi import. Nếu không truyền, dùng data/interim/external/roboflow_coco_7class.",
+    )
+
+    parser.add_argument(
+        "--output-image-dir",
+        type=str,
+        default=None,
+        help="Thư mục chứa ảnh đã copy từ Roboflow. Nếu không truyền, dùng data/interim/external/roboflow_images.",
+    )
+
     return parser.parse_args()
 
 
@@ -73,8 +87,19 @@ def main() -> None:
         clear_old_logs=True,
     )
 
-    output_coco_dir = data_config.paths.coco_7class_dir
-    output_image_dir = data_config.paths.processed_root / "roboflow_coco_images"
+    project_root = loaded_config.system.project_root
+
+    output_coco_dir = (
+        Path(args.output_coco_dir)
+        if args.output_coco_dir is not None
+        else project_root / "data" / "interim" / "external" / "roboflow_coco_7class"
+    )
+
+    output_image_dir = (
+        Path(args.output_image_dir)
+        if args.output_image_dir is not None
+        else project_root / "data" / "interim" / "external" / "roboflow_images"
+    )
 
     mapping_label_path = args.mapping_label
 
