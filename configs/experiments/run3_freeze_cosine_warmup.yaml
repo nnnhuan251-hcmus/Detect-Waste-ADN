@@ -50,9 +50,11 @@ loss:
 optimizer:
   name: adamw
   lr: 0.0001
-  backbone_lr: 0.00001
-  head_lr: 0.0001
   weight_decay: 0.0005
+
+  # sửa ClassifierTrainer để tạo parameter groups cho backbone/head (cải tiến)
+  # backbone_lr: 0.00001
+  # head_lr: 0.0001
 
 scheduler:
   name: cosine_annealing
