@@ -300,19 +300,11 @@ class CropDatasetBuilder:
             output_path = self.output_root / "crops_metadata.csv"
 
         output_path = Path(output_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if not metadata_rows:
-            logger.warning("Không có metadata crop để lưu.")
-            output_path.touch()
-            return output_path
-
-        fieldnames = list(metadata_rows[0].keys())
-
-        with output_path.open("w", encoding="utf-8", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(metadata_rows)
+        IOUtils.write_csv_dicts(
+            dest_path=output_path,
+            rows=metadata_rows,
+        )
 
         logger.info("Đã lưu crop metadata tại: %s", output_path)
 
@@ -379,16 +371,17 @@ class CropDatasetBuilder:
         return None
 
     def _save_crop(self, crop_path: Path, crop) -> None:
-        crop_path.parent.mkdir(parents=True, exist_ok=True)
+        jpeg_quality = (
+            self.jpeg_quality
+            if self.save_format in {"jpg", "jpeg"}
+            else None
+        )
 
-        if self.save_format in {"jpg", "jpeg"}:
-            cv2.imwrite(
-                str(crop_path),
-                crop,
-                [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_quality],
-            )
-        else:
-            cv2.imwrite(str(crop_path), crop)
+        IOUtils.save_image_bgr(
+            dest_path=crop_path,
+            image_bgr=crop,
+            jpeg_quality=jpeg_quality,
+        )
 
     @staticmethod
     def _safe_stem(file_name: str) -> str:
