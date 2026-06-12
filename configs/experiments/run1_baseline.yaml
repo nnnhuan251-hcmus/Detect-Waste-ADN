@@ -63,8 +63,13 @@ checkpoint:
 
 tracking:
   use_wandb: false
+  mode: disabled
   project: waste-detection-taco
+  entity: null
   group: ablation
+  log_code: false
+  log_model: true
+  watch_model: false
   tags:
     - baseline
     - pretrained
