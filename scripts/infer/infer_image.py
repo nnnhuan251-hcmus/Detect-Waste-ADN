@@ -72,6 +72,30 @@ def parse_args() -> argparse.Namespace:
         default=None,
     )
 
+        parser.add_argument(
+        "--use-tta",
+        action="store_true",
+        help="Bật test-time augmentation cho detector.",
+    )
+
+    parser.add_argument(
+        "--use-wbf",
+        action="store_true",
+        help="Bật Weighted Boxes Fusion để gộp bbox từ TTA views.",
+    )
+
+    parser.add_argument(
+        "--wbf-iou-threshold",
+        type=float,
+        default=0.55,
+    )
+
+    parser.add_argument(
+        "--wbf-skip-box-threshold",
+        type=float,
+        default=0.001,
+    )
+
     return parser.parse_args()
 
 
@@ -128,6 +152,11 @@ def main() -> None:
         final_confidence_threshold=float(
             hybrid_config.get("final_confidence_threshold", 0.25)
         ),
+        
+        use_tta=args.use_tta,
+        use_wbf=args.use_wbf,
+        wbf_iou_threshold=args.wbf_iou_threshold,
+        wbf_skip_box_threshold=args.wbf_skip_box_threshold,
         device=device,
     )
 
