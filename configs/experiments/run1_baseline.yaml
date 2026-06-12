@@ -6,6 +6,12 @@ experiment:
 data:
   augmentation_level: minimal
 
+sampler:
+  enabled: false
+  name: weighted_random
+  replacement: true
+  num_samples_multiplier: 1.0
+
 augmentation:
   resize: true
   normalize: true
