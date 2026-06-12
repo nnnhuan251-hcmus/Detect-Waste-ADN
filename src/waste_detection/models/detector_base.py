@@ -24,7 +24,7 @@ class DetectorBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def predict(self, source: str | Path, **kwargs) -> Any:
+    def predict(self, source: Any, **kwargs) -> Any:
         raise NotImplementedError
 
     @staticmethod
