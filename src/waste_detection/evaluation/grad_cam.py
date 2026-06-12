@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+from waste_detection.utils.io import IOUtils
 
 class GradCAMExplainer:
     """
@@ -65,7 +66,7 @@ class GradCAMExplainer:
         )
 
         save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(save_path.parent)
 
         fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
