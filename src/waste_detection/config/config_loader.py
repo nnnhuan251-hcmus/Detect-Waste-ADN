@@ -495,3 +495,24 @@ class ConfigLoader:
 
         if lr <= 0:
             raise ValueError(f"optimizer.lr trong {config_path} phải > 0.")
+
+        if "sampler" in config:
+            sampler = ConfigLoader._require_mapping(config, "sampler", config_path)
+
+            sampler_name = str(sampler.get("name", "weighted_random"))
+
+            if sampler_name not in {"weighted_random"}:
+                raise ValueError(
+                    f"sampler.name trong {config_path} không hợp lệ: {sampler_name}. "
+                    "Hiện chỉ hỗ trợ: weighted_random."
+                )
+
+            num_samples_multiplier = float(
+                sampler.get("num_samples_multiplier", 1.0)
+            )
+
+            if num_samples_multiplier <= 0:
+                raise ValueError(
+                    "sampler.num_samples_multiplier phải > 0. "
+                    f"Hiện tại={num_samples_multiplier}"
+                )
