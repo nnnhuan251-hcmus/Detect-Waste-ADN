@@ -22,10 +22,11 @@ class DetectionPrediction:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "xyxy": self.xyxy,
-            "confidence": self.confidence,
-            "class_id": self.class_id,
+            "xyxy": [float(value) for value in self.xyxy],
+            "confidence": float(self.confidence),
+            "class_id": int(self.class_id),
         }
+
 
 class DetectorPredictor(PredictorBase):
     """
@@ -34,10 +35,28 @@ class DetectorPredictor(PredictorBase):
     Dùng được cho:
     - YOLOv8n binary detector
     - YOLOv8s detector-only
-    - RT-DETR-L detector-only
+    - RT-DETR detector-only
     """
 
-    def predict(self, source, **kwargs):
+    def __init__(
+        self,
+        weights_path: str | Path,
+        detector_name: str = "yolov8n",
+        family: str | None = None,
+        confidence_threshold: float = 0.25,
+        iou_threshold: float = 0.50,
+        max_detections: int = 300,
+    ) -> None:
+        self.weights_path = Path(weights_path)
+        self.detector_name = str(detector_name).lower()
+        self.family = str(family or "").lower()
+        self.confidence_threshold = float(confidence_threshold)
+        self.iou_threshold = float(iou_threshold)
+        self.max_detections = int(max_detections)
+
+        self.detector = self._build_detector()
+
+    def predict(self, source, **kwargs) -> List[DetectionPrediction]:
         results = self.detector.predict(
             source=source,
             conf=kwargs.get("conf", self.confidence_threshold),
@@ -50,17 +69,17 @@ class DetectorPredictor(PredictorBase):
 
         predictions = [
             DetectionPrediction(
-                xyxy=prediction["xyxy"],
-                confidence=prediction["confidence"],
-                class_id=prediction["class_id"],
+                xyxy=[float(value) for value in prediction["xyxy"]],
+                confidence=float(prediction["confidence"]),
+                class_id=int(prediction["class_id"]),
             )
             for prediction in raw_predictions
         ]
 
         logger.info(
-            "Detector predicted %d boxes for image: %s",
+            "Detector predicted %d boxes for source: %s",
             len(predictions),
-            source,
+            type(source),
         )
 
         return predictions
