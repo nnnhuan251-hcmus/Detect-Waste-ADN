@@ -61,7 +61,7 @@ class ClassifierTrainer(TrainerBase):
         self.class_weights = class_weights
         self.wandb_run = wandb_run
 
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(self.output_dir)
 
         self.training_config = experiment_config.get("training", {})
         self.optimizer_config = experiment_config.get("optimizer", {})
@@ -140,7 +140,7 @@ class ClassifierTrainer(TrainerBase):
             else:
                 self.early_stop_counter += 1
 
-            if self.early_stop_counter >= self.patience:
+            if self.patience > 0 and self.early_stop_counter >= self.patience:
                 logger.info(
                     "Early stopping tại epoch %d vì metric không cải thiện trong %d epoch.",
                     epoch + 1,
@@ -171,8 +171,8 @@ class ClassifierTrainer(TrainerBase):
 
         for batch in progress_bar:
             inputs, labels = batch[:2]
-            inputs = inputs.to(self.device)
-            labels = labels.to(self.device)
+            inputs = inputs.to(self.device, non_blocking=True)
+            labels = labels.to(self.device, non_blocking=True)
 
             self.optimizer.zero_grad(set_to_none=True)
 
@@ -218,8 +218,8 @@ class ClassifierTrainer(TrainerBase):
 
             for batch in progress_bar:
                 inputs, labels = batch[:2]
-                inputs = inputs.to(self.device)
-                labels = labels.to(self.device)
+                inputs = inputs.to(self.device, non_blocking=True)
+                labels = labels.to(self.device, non_blocking=True)
 
                 with autocast(
                     enabled=self.mixed_precision and self.device.type == "cuda"
@@ -252,18 +252,46 @@ class ClassifierTrainer(TrainerBase):
         y_pred: List[int],
         loss: float,
     ) -> Dict[str, float]:
+        labels = list(range(len(self.class_names)))
+
         return {
             "loss": float(loss),
             "accuracy": float(accuracy_score(y_true, y_pred)),
-            "macro_f1": float(f1_score(y_true, y_pred, average="macro", zero_division=0)),
+            "macro_f1": float(
+                f1_score(
+                    y_true,
+                    y_pred,
+                    labels=labels,
+                    average="macro",
+                    zero_division=0,
+                )
+            ),
             "weighted_f1": float(
-                f1_score(y_true, y_pred, average="weighted", zero_division=0)
+                f1_score(
+                    y_true,
+                    y_pred,
+                    labels=labels,
+                    average="weighted",
+                    zero_division=0,
+                )
             ),
             "macro_precision": float(
-                precision_score(y_true, y_pred, average="macro", zero_division=0)
+                precision_score(
+                    y_true,
+                    y_pred,
+                    labels=labels,
+                    average="macro",
+                    zero_division=0,
+                )
             ),
             "macro_recall": float(
-                recall_score(y_true, y_pred, average="macro", zero_division=0)
+                recall_score(
+                    y_true,
+                    y_pred,
+                    labels=labels,
+                    average="macro",
+                    zero_division=0,
+                )
             ),
         }
 
@@ -300,35 +328,46 @@ class ClassifierTrainer(TrainerBase):
 
     def _apply_fine_tuning_schedule(self, epoch: int) -> None:
         train_mode = self.fine_tuning_config.get("train_mode", "end_to_end")
-    
+
         if train_mode == "end_to_end":
             return
-    
+
         if train_mode != "staged_finetuning":
             return
-    
+
         freeze_epochs = int(self.fine_tuning_config.get("freeze_epochs", 0))
-    
-        if epoch == 0 and bool(self.fine_tuning_config.get("freeze_backbone", False)):
+        freeze_backbone = bool(self.fine_tuning_config.get("freeze_backbone", False))
+
+        if freeze_epochs <= 0:
+            if epoch == 0:
+                logger.info(
+                    "Fine-tuning schedule | freeze_epochs<=0, không freeze backbone."
+                )
+            return
+
+        if epoch == 0 and freeze_backbone:
             self.model.freeze_backbone()
             logger.info(
                 "Fine-tuning schedule | epoch=%d | action=freeze_backbone",
                 epoch + 1,
             )
-    
+            return
+
         if epoch == freeze_epochs:
             self.model.unfreeze_last_blocks(num_blocks=2)
             logger.info(
                 "Fine-tuning schedule | epoch=%d | action=unfreeze_last_blocks",
                 epoch + 1,
             )
-    
+            return
+
         if epoch == freeze_epochs + 5:
             self.model.unfreeze_backbone()
             logger.info(
                 "Fine-tuning schedule | epoch=%d | action=unfreeze_full_backbone",
                 epoch + 1,
             )
+            return
 
     def _save_if_best(self, val_metrics: Dict[str, float]) -> bool:
         monitor_metric = self.checkpoint_config.get("monitor_classifier", "val_macro_f1")
