@@ -87,22 +87,35 @@ class CocoSplitter:
         if not images:
             raise ValueError("Dataset không có images để split.")
 
-        feature_matrix = self._build_image_class_matrix(dataset)
+        used_iterative = False
 
-        try:
-            train_indices, val_indices, test_indices = self._iterative_split(
-                images=images,
-                feature_matrix=feature_matrix,
-            )
-            used_iterative = True
-            logger.info("Đã split bằng MultilabelStratifiedShuffleSplit.")
-        except Exception as error:
-            logger.warning(
-                "Không dùng được iterative stratification. Fallback random split. Lý do: %s",
-                error,
+        if self.strategy == "multilabel_stratified":
+            feature_matrix = self._build_image_class_matrix(dataset)
+
+            try:
+                train_indices, val_indices, test_indices = self._iterative_split(
+                    images=images,
+                    feature_matrix=feature_matrix,
+                )
+                used_iterative = True
+                logger.info("Đã split bằng MultilabelStratifiedShuffleSplit.")
+
+            except Exception as error:
+                logger.warning(
+                    "Không dùng được MultilabelStratifiedShuffleSplit. "
+                    "Fallback sang random image-level split. Lý do: %s",
+                    error,
+                )
+                train_indices, val_indices, test_indices = self._random_split(
+                    len(images)
+                )
+
+        else:
+            logger.info(
+                "Split strategy=%s. Dùng random image-level split.",
+                self.strategy,
             )
             train_indices, val_indices, test_indices = self._random_split(len(images))
-            used_iterative = False
 
         train_images = [images[index] for index in train_indices]
         val_images = [images[index] for index in val_indices]
@@ -121,7 +134,8 @@ class CocoSplitter:
         )
 
         logger.info(
-            "Split xong: train=%d images, val=%d images, test=%d images.",
+            "Split xong: strategy=%s | train=%d images, val=%d images, test=%d images.",
+            self.strategy,
             len(train_images),
             len(val_images),
             len(test_images),
@@ -226,7 +240,7 @@ class CocoSplitter:
         used_iterative_stratification: bool,
     ) -> SplitReport:
         report = SplitReport(
-            strategy="image_level_multilabel_stratified_or_random_fallback",
+            strategy=self.strategy,
             seed=self.seed,
             train_ratio=self.train_ratio,
             val_ratio=self.val_ratio,
