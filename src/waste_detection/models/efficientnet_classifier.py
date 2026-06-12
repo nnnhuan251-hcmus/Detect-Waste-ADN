@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
+from waste_detection.utils.io import IOUtils
 
 logger = logging.getLogger("EfficientNetB0Classifier")
 
@@ -28,6 +29,12 @@ class EfficientNetB0Classifier(nn.Module):
         pretrained: bool = True,
     ) -> None:
         super().__init__()
+
+        if num_classes <= 0:
+            raise ValueError(f"num_classes phải > 0. Hiện tại={num_classes}")
+
+        if dropout < 0.0 or dropout >= 1.0:
+            raise ValueError(f"dropout phải nằm trong [0, 1). Hiện tại={dropout}")
 
         self.num_classes = num_classes
         self.dropout = dropout
@@ -110,7 +117,7 @@ class EfficientNetB0Classifier(nn.Module):
         extra: dict | None = None,
     ) -> None:
         save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(save_path.parent)
 
         checkpoint = {
             "model_state_dict": self.state_dict(),
@@ -146,6 +153,18 @@ class EfficientNetB0Classifier(nn.Module):
         model.load_state_dict(state_dict)
 
         class_names = checkpoint.get("class_names", [])
+
+        if not class_names:
+            logger.warning(
+                "Checkpoint không chứa class_names. Inference vẫn chạy nhưng label name có thể bị thiếu."
+            )
+
+        if class_names and len(class_names) != checkpoint["num_classes"]:
+            raise ValueError(
+                "Checkpoint class_names không khớp num_classes: "
+                f"len(class_names)={len(class_names)}, "
+                f"num_classes={checkpoint['num_classes']}"
+            )
 
         logger.info("Đã load classifier checkpoint: %s", checkpoint_path)
 
