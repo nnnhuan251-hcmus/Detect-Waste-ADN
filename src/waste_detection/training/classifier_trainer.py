@@ -300,26 +300,35 @@ class ClassifierTrainer(TrainerBase):
 
     def _apply_fine_tuning_schedule(self, epoch: int) -> None:
         train_mode = self.fine_tuning_config.get("train_mode", "end_to_end")
-
+    
         if train_mode == "end_to_end":
             return
-
+    
         if train_mode != "staged_finetuning":
             return
-
+    
         freeze_epochs = int(self.fine_tuning_config.get("freeze_epochs", 0))
-
+    
         if epoch == 0 and bool(self.fine_tuning_config.get("freeze_backbone", False)):
             self.model.freeze_backbone()
-            self.optimizer = self._build_optimizer()
-
+            logger.info(
+                "Fine-tuning schedule | epoch=%d | action=freeze_backbone",
+                epoch + 1,
+            )
+    
         if epoch == freeze_epochs:
             self.model.unfreeze_last_blocks(num_blocks=2)
-            self.optimizer = self._build_optimizer()
-
+            logger.info(
+                "Fine-tuning schedule | epoch=%d | action=unfreeze_last_blocks",
+                epoch + 1,
+            )
+    
         if epoch == freeze_epochs + 5:
             self.model.unfreeze_backbone()
-            self.optimizer = self._build_optimizer()
+            logger.info(
+                "Fine-tuning schedule | epoch=%d | action=unfreeze_full_backbone",
+                epoch + 1,
+            )
 
     def _save_if_best(self, val_metrics: Dict[str, float]) -> bool:
         monitor_metric = self.checkpoint_config.get("monitor_classifier", "val_macro_f1")
