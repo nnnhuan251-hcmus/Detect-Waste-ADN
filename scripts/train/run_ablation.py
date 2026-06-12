@@ -204,6 +204,7 @@ def build_ablation_commands(
                         model_config_path,
                         "--experiment-config",
                         experiment_config_path,
+                        *extra_train_args,
                     ]
                 )
 
@@ -218,6 +219,7 @@ def build_ablation_commands(
                         model_config_path,
                         "--experiment-config",
                         experiment_config_path,
+                        *extra_train_args,
                     ]
                 )
 
