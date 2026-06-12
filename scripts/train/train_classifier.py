@@ -1,22 +1,25 @@
 from __future__ import annotations
 
+# 1. Thư viện chuẩn của Python
 import argparse
 import logging
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+# 2. Thư viện bên thứ 3
 from torch.utils.data import DataLoader
 
-from waste_detection.tracking.experiment_registry import ExperimentRegistry
-from waste_detection.tracking.wandb_logger import WandbLogger, to_serializable
+# 3. Thư viện nội bộ của dự án
 from waste_detection.config.config_loader import ConfigLoader
 from waste_detection.data.crop_dataset import CropClassificationDataset
 from waste_detection.data.transforms import ClassifierTransformFactory
 from waste_detection.models.efficientnet_classifier import EfficientNetB0Classifier
+from waste_detection.tracking.experiment_registry import ExperimentRegistry
+from waste_detection.tracking.wandb_logger import WandbLogger, to_serializable
 from waste_detection.training.classifier_trainer import ClassifierTrainer
 from waste_detection.utils.device import get_device
 from waste_detection.utils.logger import LoggerSetup
 from waste_detection.utils.seed import set_seed
-
 
 logger = logging.getLogger("train_classifier")
 
