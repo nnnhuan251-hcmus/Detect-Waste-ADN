@@ -5,6 +5,7 @@ model:
 
 detector:
   name: yolov8n
+  family: yolo
   framework: ultralytics
   task: detect
   pretrained: true
