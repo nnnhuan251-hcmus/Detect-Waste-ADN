@@ -198,13 +198,16 @@ class TacoPreparationPipeline(BasePipeline):
         mapping_dict = IOUtils.load_json(self.data_config.mapping.file)
 
         mapper = TacoLabelMapper(
-            mapping_dict=mapping_dict,
             target_class_names=self.class_names,
+            target_name_to_id=self.data_config.classes.name_to_id,
             ignore_key=self.data_config.mapping.ignore_key,
             fail_on_unmapped=self.data_config.mapping.fail_on_unmapped,
         )
 
-        mapped_dataset, mapping_report = mapper.map_dataset(raw_dataset)
+        mapped_dataset, mapping_report = mapper.transform(
+            dataset=raw_dataset,
+            mapping_dict=mapping_dict,
+        )
 
         logger.info(
             "Map label xong: %d images, %d annotations, %d categories.",
