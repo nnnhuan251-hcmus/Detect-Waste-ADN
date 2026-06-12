@@ -10,7 +10,6 @@ from tqdm import tqdm
 
 from waste_detection.data.image_resolver import ImageResolver
 
-
 logger = logging.getLogger("YoloConverter")
 
 
