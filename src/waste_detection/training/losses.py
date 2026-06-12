@@ -62,7 +62,9 @@ class LossFactory:
         class_weights: torch.Tensor | None,
         device: torch.device,
     ) -> nn.Module:
-        classifier_loss = loss_config.get("classifier_loss", "cross_entropy")
+        classifier_loss = str(
+            loss_config.get("classifier_loss", "cross_entropy")
+        ).lower().strip()
 
         use_class_weighting = bool(loss_config.get("class_weighting", False))
 
@@ -77,7 +79,7 @@ class LossFactory:
         if classifier_loss == "focal_loss":
             focal_config = loss_config.get("focal_loss", {})
             gamma = float(focal_config.get("gamma", 2.0))
-            reduction = str(focal_config.get("reduction", "mean"))
+            reduction = str(focal_config.get("reduction", "mean")).lower().strip()
 
             return FocalLoss(
                 alpha=weight_tensor,
