@@ -144,6 +144,7 @@ class YoloConverter:
                     dest_path=output_image_path,
                     overwrite=True,
                 )
+                report.num_images_copied += 1
 
             label_lines = []
 
@@ -181,7 +182,6 @@ class YoloConverter:
                 content=label_content,
             )
 
-            report.num_images_copied += 1
             report.num_label_files += 1
             report.num_boxes_written += len(label_lines)
 
