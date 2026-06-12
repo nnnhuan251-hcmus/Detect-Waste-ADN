@@ -19,7 +19,11 @@ class DatasetUtils:
         """
         logger.info("Bắt đầu lọc annotation cho %d ảnh.", len(images))
 
-        valid_image_ids = {image["id"] for image in images}
+        valid_image_ids = {
+            image["id"]
+            for image in images
+            if "id" in image
+        }
 
         filtered_annotations = []
         dropped_count = 0
