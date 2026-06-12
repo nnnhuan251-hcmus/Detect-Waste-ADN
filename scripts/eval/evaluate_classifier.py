@@ -89,6 +89,11 @@ def main() -> None:
 
     device = get_device()
 
+    weights_path = Path(args.weights)
+
+    if not weights_path.exists():
+        raise FileNotFoundError(f"Không tìm thấy classifier weights: {weights_path}")
+
     classifier_config = model_config.get("classifier", {})
     image_size = int(classifier_config.get("input_size", 224))
 
@@ -114,7 +119,7 @@ def main() -> None:
     )
 
     model, checkpoint_class_names = EfficientNetB0Classifier.load_from_checkpoint(
-        args.weights,
+        weights_path,
         map_location=device,
     )
 
@@ -139,8 +144,8 @@ def main() -> None:
         for batch in tqdm(loader_eval, desc=f"Evaluate classifier [{args.split}]"):
             inputs, labels, paths = batch
 
-            inputs = inputs.to(device)
-            labels = labels.to(device)
+            inputs = inputs.to(device, non_blocking=True)
+            labels = labels.to(device, non_blocking=True)
 
             logits = model(inputs)
             probabilities = torch.softmax(logits, dim=1)
@@ -182,7 +187,7 @@ def main() -> None:
         / args.split
     )
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    IOUtils.ensure_dir(output_dir)
 
     IOUtils.save_json(output_dir / "metrics.json", metrics)
     IOUtils.save_json(output_dir / "predictions.json", prediction_rows)
@@ -208,6 +213,8 @@ def main() -> None:
         / run_name
         / args.split
     )
+
+    IOUtils.ensure_dir(figures_dir)
     
     ErrorVisualizer.plot_confusion_matrix(
         confusion_matrix=metrics["confusion_matrix"],
