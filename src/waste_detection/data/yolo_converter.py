@@ -288,6 +288,8 @@ class YoloConverter:
 
     @staticmethod
     def _safe_stem(file_name: str) -> str:
-        path = Path(file_name)
-        parts = list(path.with_suffix("").parts)
-        return "__".join(parts)
+        normalized = str(file_name).replace("\\", "/").strip("/")
+        normalized = normalized.replace(":", "_")
+        path = Path(normalized)
+        stem_without_suffix = str(path.with_suffix("")).replace("\\", "/")
+        return stem_without_suffix.replace("/", "__")
