@@ -118,6 +118,10 @@ class CocoReader:
 
         for annotation in dataset.get("annotations", []):
             image_id = annotation.get("image_id")
+            
+            if image_id is None:
+                continue
+            
             grouped_annotations[image_id].append(annotation)
 
         return dict(grouped_annotations)
