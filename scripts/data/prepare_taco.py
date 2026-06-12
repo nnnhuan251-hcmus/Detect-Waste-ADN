@@ -175,6 +175,7 @@ def main() -> None:
         test_ratio=data_config.split.test_ratio,
         seed=data_config.split.seed,
         shuffle=data_config.split.shuffle,
+        strategy=data_config.split.strategy,
     )
 
     splits, split_report = splitter.split(processed_dataset)
