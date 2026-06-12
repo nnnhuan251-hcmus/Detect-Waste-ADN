@@ -49,7 +49,7 @@ class DetectorTrainer(TrainerBase):
         self.run_name = self.experiment_meta.get("name", "run_unknown")
 
         self.output_dir = self.output_root / self.model_name / self.run_name
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(self.output_dir)
 
         self.detector = self._build_detector()
 
@@ -64,6 +64,14 @@ class DetectorTrainer(TrainerBase):
         best_path = self.output_dir / "weights" / "best.pt"
         last_path = self.output_dir / "weights" / "last.pt"
 
+        results_csv_path = self.output_dir / "results.csv"
+
+        if not best_path.exists():
+            logger.warning("Best weight chưa tồn tại sau train: %s", best_path)
+        
+        if not last_path.exists():
+            logger.warning("Last weight chưa tồn tại sau train: %s", last_path)
+
         summary = {
             "model_name": self.model_name,
             "run_name": self.run_name,
@@ -73,6 +81,10 @@ class DetectorTrainer(TrainerBase):
             "last_weight_path": str(last_path),
             "train_args": train_args,
             "train_result_type": str(type(train_result)),
+            "best_weight_exists": best_path.exists(),
+            "last_weight_exists": last_path.exists(),
+            "results_csv_path": str(results_csv_path),
+            "results_csv_exists": results_csv_path.exists(),
         }
 
         IOUtils.save_json(self.output_dir / "train_summary.json", summary)
