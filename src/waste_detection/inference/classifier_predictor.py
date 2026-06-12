@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from PIL import Image
 
+from waste_detection.utils.io import IOUtils
 from waste_detection.inference.predictor_base import PredictorBase
 from waste_detection.data.transforms import ClassifierTransformFactory
 from waste_detection.models.efficientnet_classifier import EfficientNetB0Classifier
@@ -127,11 +128,8 @@ class ClassifierPredictor(PredictorBase):
             return self.predict_one(source)
     
         image_path = Path(source)
-        image = cv2.imread(str(image_path))
-    
-        if image is None:
-            raise FileNotFoundError(f"Không đọc được ảnh crop: {image_path}")
-    
+        image = IOUtils.load_image_bgr(image_path)
+        
         return self.predict_one(image)
 
     def _numpy_to_pil(self, image: np.ndarray) -> Image.Image:
