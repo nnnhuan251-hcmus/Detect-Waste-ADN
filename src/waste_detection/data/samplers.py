@@ -73,6 +73,12 @@ class SamplerFactory:
         if num_samples <= 0:
             raise ValueError("sampler.num_samples phải > 0.")
 
+        if not replacement and num_samples > len(sample_weights_tensor):
+            raise ValueError(
+                "Khi sampler.replacement=False, num_samples không được lớn hơn số sample gốc. "
+                f"num_samples={num_samples}, dataset_size={len(sample_weights_tensor)}"
+            )
+
         generator = torch.Generator()
         generator.manual_seed(seed)
 
