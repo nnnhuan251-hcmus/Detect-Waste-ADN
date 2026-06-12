@@ -54,5 +54,5 @@ class DetectionMetrics:
 
         try:
             return float(value)
-        except TypeError:
+        except (TypeError, ValueError):
             return None
