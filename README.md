@@ -484,17 +484,17 @@ python scripts/eval/evaluate_hybrid.py \
 
 ---
 
-## 11. Automated Notebook Pipeline & Tools
+## 11. Các Công Cụ Phân Tích & Chạy Nhanh (Được kế thừa từ our_pipeline)
 
-### 11.1 Kaggle 3-Stage Training Notebook
+### 11.1 Kaggle 3-Stage Training Notebook (Tự động hóa hoàn toàn)
 
-The project provides a fully automated Jupyter Notebook (`notebooks/kaggle_runner.ipynb` and `adn-v1.ipynb`) that handles the entire pipeline in three distinct stages:
+Dự án cung cấp một Jupyter Notebook tự động hóa hoàn toàn (`notebooks/kaggle_runner.ipynb` và `adn-v1.ipynb`) xử lý toàn bộ quy trình qua 3 giai đoạn:
 
-1. **STAGE 1 (Pre-train):** Downloads TACO via Kagglehub, processes it, and trains the baseline models.
-2. **STAGE 2 (Fine-tune):** Downloads a custom dataset via Roboflow API, processes it into `data/processed_roboflow` to avoid overwriting TACO, auto-generates `hybrid_finetune.yaml` inheriting weights from Stage 1, and fine-tunes the models.
-3. **STAGE 3 (Evaluation):** Automatically evaluates the fine-tuned model and extracts a random test image for XAI (Grad-CAM) and Ablation visualization.
+1. **GIAI ĐOẠN 1 (Pre-train):** Tải dữ liệu TACO qua Kagglehub, tiền xử lý và huấn luyện mô hình nền tảng.
+2. **GIAI ĐOẠN 2 (Fine-tune):** Tải dữ liệu thực tế qua Roboflow API, tiền xử lý độc lập vào thư mục riêng (`data/processed_roboflow`) để không ghi đè lên bộ TACO cũ. Tự động sinh `hybrid_finetune.yaml` để kế thừa trọng số từ Giai đoạn 1 và tiến hành Fine-tune.
+3. **GIAI ĐOẠN 3 (Evaluation):** Tự động đánh giá mô hình đã Fine-tune và trích xuất một ảnh ngẫu nhiên để trực quan hóa Bản đồ nhiệt XAI (Grad-CAM) và Phân tích đối chứng (Ablation).
 
-This notebook is intended for Contributors to effortlessly reproduce experiments with a single "Run All" click.
+Notebook này giúp người dùng dễ dàng tái lập lại toàn bộ các thực nghiệm chỉ với một thao tác "Run All".
 
 ### 11.2 Chạy Nhận Diện Siêu Tốc (Easy Inference)
 
