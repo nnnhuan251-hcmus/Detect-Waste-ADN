@@ -5,6 +5,7 @@ from waste_detection.config.config_loader import ConfigLoader
 from waste_detection.data.coco_reader import CocoReader
 from waste_detection.data.coco_validator import COCOValidator
 from waste_detection.data.label_mapper import TacoLabelMapper
+from waste_detection.data.bbox_sanitizer import BBoxSanitizer
 from waste_detection.utils.io import IOUtils
 from waste_detection.utils.logger import LoggerSetup
 
@@ -14,7 +15,7 @@ logger = logging.getLogger("build_label_mapping")
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Map category gốc TACO sang 7 class đích."
+        description="Map category gốc TACO sang 7 class đích và sanitize bbox."
     )
 
     parser.add_argument(
@@ -68,15 +69,24 @@ def main() -> None:
         fail_on_unmapped=data_config.mapping.fail_on_unmapped,
     )
 
-    processed_dataset, mapping_report = mapper.transform(
+    mapped_dataset, mapping_report = mapper.transform(
         dataset=raw_dataset,
         mapping_dict=mapping_dict,
     )
 
+    sanitizer = BBoxSanitizer(
+        min_width=data_config.bbox.min_width,
+        min_height=data_config.bbox.min_height,
+        clamp_to_image=data_config.bbox.clamp_to_image,
+        drop_invalid_bbox=data_config.bbox.drop_invalid_bbox,
+    )
+
+    processed_dataset, bbox_report = sanitizer.sanitize(mapped_dataset)
+
     COCOValidator.validate(
         dataset=processed_dataset,
         strict=True,
-        check_bbox_inside_image=False,
+        check_bbox_inside_image=True,
     )
 
     IOUtils.save_coco_json(
@@ -92,6 +102,11 @@ def main() -> None:
     IOUtils.save_json(
         dest_path=data_config.paths.mapping_report_path,
         data=mapping_report.to_dict(),
+    )
+
+    IOUtils.save_json(
+        dest_path=data_config.paths.coco_7class_dir / "bbox_sanitizer_report.json",
+        data=bbox_report.to_dict(),
     )
 
     logger.info("Build label mapping hoàn tất.")
