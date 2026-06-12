@@ -1,5 +1,5 @@
 import logging
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Tuple
 
@@ -68,6 +68,8 @@ class CocoSplitter:
                 f"Hiện tại = {total}"
             )
 
+        strategy = str(strategy).lower().strip()
+        
         supported_strategies = {
             "multilabel_stratified",
             "image_level",
@@ -191,7 +193,6 @@ class CocoSplitter:
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
 
-        indices = np.arange(len(images))
         dummy_x = np.zeros((len(images), 1))
 
         temp_ratio = self.val_ratio + self.test_ratio
