@@ -32,7 +32,7 @@ class CropClassificationDataset(Dataset):
     └── test/
     """
 
-    SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
+    SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
     def __init__(
         self,
@@ -84,7 +84,7 @@ class CropClassificationDataset(Dataset):
             label = self.class_to_idx[class_name]
 
             for image_path in sorted(class_dir.rglob("*")):
-                if image_path.suffix in self.SUPPORTED_EXTENSIONS:
+                if image_path.suffix.lower() in self.SUPPORTED_EXTENSIONS:
                     self.samples.append((image_path, label))
 
     def __len__(self) -> int:
@@ -93,7 +93,8 @@ class CropClassificationDataset(Dataset):
     def __getitem__(self, index: int):
         image_path, label = self.samples[index]
 
-        image = Image.open(image_path).convert("RGB")
+        with Image.open(image_path) as image_file:
+            image = image_file.convert("RGB")
 
         if self.transform is not None:
             image = self.transform(image)
