@@ -95,8 +95,8 @@ class YoloConverter:
         images_dir = self.output_root / "images" / split_name
         labels_dir = self.output_root / "labels" / split_name
 
-        images_dir.mkdir(parents=True, exist_ok=True)
-        labels_dir.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(images_dir)
+        IOUtils.ensure_dir(labels_dir)
 
         images = dataset.get("images", [])
         annotations = dataset.get("annotations", [])
@@ -139,7 +139,11 @@ class YoloConverter:
             output_label_path = labels_dir / f"{safe_stem}.txt"
 
             if copy_images:
-                IOUtils.copy_file(resolved_image_path, output_image_path)
+                IOUtils.copy_file(
+                    source_path=resolved_image_path,
+                    dest_path=output_image_path,
+                    overwrite=True,
+                )
 
             label_lines = []
 
@@ -170,9 +174,12 @@ class YoloConverter:
                     f"{yolo_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}"
                 )
 
-            with output_label_path.open("w", encoding="utf-8") as file:
-                if label_lines:
-                    file.write("\n".join(label_lines) + "\n")
+            label_content = "\n".join(label_lines) + "\n" if label_lines else ""
+
+            IOUtils.write_text(
+                dest_path=output_label_path,
+                content=label_content,
+            )
 
             report.num_images_copied += 1
             report.num_label_files += 1
@@ -199,7 +206,8 @@ class YoloConverter:
         }
 
         data_yaml_path = self.output_root / "data.yaml"
-        data_yaml_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        IOUtils.ensure_dir(data_yaml_path.parent)
 
         with data_yaml_path.open("w", encoding="utf-8") as file:
             yaml.safe_dump(
