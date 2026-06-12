@@ -123,6 +123,19 @@ def main() -> None:
         clear_old_logs=True,
     )
 
+    detector_weights = Path(args.detector_weights)
+    classifier_weights = Path(args.classifier_weights)
+    image_path = Path(args.image)
+
+    if not detector_weights.exists():
+        raise FileNotFoundError(f"Không tìm thấy detector weights: {detector_weights}")
+
+    if not classifier_weights.exists():
+        raise FileNotFoundError(f"Không tìm thấy classifier weights: {classifier_weights}")
+
+    if not image_path.exists():
+        raise FileNotFoundError(f"Không tìm thấy ảnh inference: {image_path}")
+    
     device = get_device()
 
     detector_config = model_config.get("detector", {})
@@ -136,8 +149,8 @@ def main() -> None:
     )
 
     predictor = HybridPredictor(
-        detector_weights=args.detector_weights,
-        classifier_weights=args.classifier_weights,
+        detector_weights=detector_weights,
+        classifier_weights=classifier_weights,
         class_names=data_config.classes.names,
         detector_name=str(detector_config.get("name", "yolov8n")),
         detector_family=detector_config.get("family", None),
@@ -160,7 +173,7 @@ def main() -> None:
         device=device,
     )
 
-    predictions = predictor.predict(args.image)
+    predictions = predictor.predict(image_path)
     prediction_dicts = [prediction.to_dict() for prediction in predictions]
 
     save_dir = Path(args.save_dir)
