@@ -243,7 +243,7 @@ def main() -> None:
                 metadata=summary,
             )
         else:
-            logger.warning("Không tìm thấy train summary file: %s", train_summary_path)
+            logger.warning("Không tìm thấy detector train summary: %s", train_summary_path)
 
     registry = ExperimentRegistry(
         Path(loaded_config.system.project_root)
