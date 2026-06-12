@@ -34,6 +34,10 @@ class YOLOv8Detector(DetectorBase):
         logger.info("Bắt đầu validate YOLO với args: %s", kwargs)
         return self.model.val(**kwargs)
 
-    def predict(self, source: str | Path, **kwargs) -> Any:
-        logger.info("Bắt đầu predict YOLO. Source: %s", source)
-        return self.model.predict(source=str(source), **kwargs)
+    def predict(self, source: Any, **kwargs) -> Any:
+        logger.info("Bắt đầu predict YOLO. Source type: %s", type(source))
+
+        if isinstance(source, (str, Path)):
+            source = str(source)
+
+        return self.model.predict(source=source, **kwargs)
