@@ -78,8 +78,8 @@ class RoboflowCocoAdapter(BaseDatasetAdapter):
         self.fail_on_unmapped = fail_on_unmapped
         self.copy_images = copy_images
 
-        self.output_coco_dir.mkdir(parents=True, exist_ok=True)
-        self.output_image_dir.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(self.output_coco_dir)
+        IOUtils.ensure_dir(self.output_image_dir)
 
     def import_dataset(self) -> Dict[str, Any]:
         if not self.dataset_dir.exists():
@@ -172,7 +172,7 @@ class RoboflowCocoAdapter(BaseDatasetAdapter):
         dataset = deepcopy(dataset)
 
         split_output_image_dir = self.output_image_dir / target_split
-        split_output_image_dir.mkdir(parents=True, exist_ok=True)
+        IOUtils.ensure_dir(split_output_image_dir)
 
         for image in dataset.get("images", []):
             original_file_name = image.get("file_name")
@@ -201,7 +201,11 @@ class RoboflowCocoAdapter(BaseDatasetAdapter):
             target_image_path = split_output_image_dir / safe_name
 
             if self.copy_images:
-                shutil.copy2(source_image_path, target_image_path)
+                IOUtils.copy_file(
+                    source_path=source_image_path,
+                    dest_path=target_image_path,
+                    overwrite=True,
+                )
             else:
                 target_image_path = source_image_path
 
