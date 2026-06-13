@@ -369,13 +369,13 @@ def main() -> None:
 
 def _get_split_annotation_path(data_config, split: str) -> Path:
     if split == "train":
-        return data_config.paths.train_annotations_path
+        return data_config.paths.train_annotations_file
 
     if split == "val":
-        return data_config.paths.val_annotations_path
+        return data_config.paths.val_annotations_file
 
     if split == "test":
-        return data_config.paths.test_annotations_path
+        return data_config.paths.test_annotations_file
 
     raise ValueError(f"Split không hợp lệ: {split}")
 
