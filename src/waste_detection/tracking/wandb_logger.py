@@ -4,7 +4,7 @@ import csv
 import logging
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Sequence
+from typing import Any, Dict, Iterable, Sequence
 
 
 logger = logging.getLogger("WandbLogger")
@@ -13,7 +13,12 @@ logger = logging.getLogger("WandbLogger")
 def to_serializable(value: Any) -> Any:
     """
     Convert Python objects into JSON/W&B-friendly values.
-    Handles Path, dataclass, dict, list, tuple, set, and simple objects.
+
+    Handles:
+    - pathlib.Path
+    - dataclass instances
+    - dict/list/tuple/set
+    - simple Python objects with __dict__
     """
     if value is None:
         return None
@@ -28,10 +33,16 @@ def to_serializable(value: Any) -> Any:
         return to_serializable(asdict(value))
 
     if isinstance(value, dict):
-        return {str(key): to_serializable(val) for key, val in value.items()}
+        return {
+            str(key): to_serializable(val)
+            for key, val in value.items()
+        }
 
     if isinstance(value, (list, tuple, set)):
-        return [to_serializable(item) for item in value]
+        return [
+            to_serializable(item)
+            for item in value
+        ]
 
     if hasattr(value, "__dict__"):
         return to_serializable(vars(value))
@@ -41,13 +52,14 @@ def to_serializable(value: Any) -> Any:
 
 class WandbLogger:
     """
-    Safe wrapper for Weights & Biases.
+    Safe Weights & Biases wrapper for the project.
 
-    Goals:
-    - Keep training runnable when W&B is disabled.
-    - Avoid spreading wandb.init / wandb.log across the project.
-    - Support Kaggle offline logging.
-    - Support model/checkpoint artifacts.
+    Design goals:
+    - Training must still run when W&B is disabled.
+    - W&B logic is centralized in one file.
+    - Supports Kaggle online/offline/disabled modes.
+    - Supports scalar logging, summary logging, model watching,
+      CSV history logging, and artifact logging.
     """
 
     def __init__(
@@ -76,7 +88,7 @@ class WandbLogger:
         self.job_type = job_type
         self.notes = notes
         self.output_dir = Path(output_dir) if output_dir is not None else None
-        self.log_code = log_code
+        self.log_code = bool(log_code)
 
         self.run = None
         self._wandb = None
@@ -109,6 +121,7 @@ class WandbLogger:
         self._wandb = wandb
 
         wandb_dir = None
+
         if self.output_dir is not None:
             wandb_dir = self.output_dir / "wandb"
             wandb_dir.mkdir(parents=True, exist_ok=True)
@@ -140,18 +153,42 @@ class WandbLogger:
             except Exception as exc:
                 logger.warning("Không thể log source code lên W&B: %s", exc)
 
-        logger.info("W&B run started: %s", self.run_name)
+        logger.info(
+            "W&B run started | project=%s | entity=%s | name=%s | group=%s | job_type=%s",
+            self.project,
+            self.entity,
+            self.run_name,
+            self.group,
+            self.job_type,
+        )
+
         return self.run
 
-    def log(self, data: Dict[str, Any], step: int | None = None) -> None:
-        if self.enabled and self.run is not None:
-            self.run.log(to_serializable(data), step=step)
-
-    def log_summary(self, data: Dict[str, Any]) -> None:
+    def log(
+        self,
+        data: Dict[str, Any],
+        step: int | None = None,
+    ) -> None:
         if not (self.enabled and self.run is not None):
             return
 
-        for key, value in to_serializable(data).items():
+        safe_data = to_serializable(data)
+
+        if step is None:
+            self.run.log(safe_data)
+        else:
+            self.run.log(safe_data, step=step)
+
+    def log_summary(
+        self,
+        data: Dict[str, Any],
+    ) -> None:
+        if not (self.enabled and self.run is not None):
+            return
+
+        safe_data = to_serializable(data)
+
+        for key, value in safe_data.items():
             self.run.summary[key] = value
 
     def watch_model(
@@ -164,7 +201,12 @@ class WandbLogger:
             return
 
         try:
-            self._wandb.watch(model, log=log, log_freq=log_freq)
+            self._wandb.watch(
+                model,
+                log=log,
+                log_freq=log_freq,
+            )
+            logger.info("Đã bật wandb.watch cho model.")
         except Exception as exc:
             logger.warning("Không thể watch model bằng W&B: %s", exc)
 
@@ -190,14 +232,22 @@ class WandbLogger:
             type=artifact_type,
             metadata=to_serializable(metadata or {}),
         )
+
         if file_path.is_file():
             artifact.add_file(str(file_path))
         else:
             artifact.add_dir(str(file_path))
-        
+
         self.run.log_artifact(
             artifact,
             aliases=list(aliases or ["latest"]),
+        )
+
+        logger.info(
+            "Đã log W&B artifact: name=%s | type=%s | path=%s",
+            artifact_name,
+            artifact_type,
+            file_path,
         )
 
     def log_csv_history(
@@ -209,7 +259,9 @@ class WandbLogger:
         """
         Log a CSV history file to W&B row by row.
 
-        Useful for Ultralytics results.csv.
+        This is useful for Ultralytics `results.csv`.
+
+        Non-numeric columns are skipped to avoid polluting W&B charts.
         """
         if not (self.enabled and self.run is not None):
             return
@@ -220,41 +272,47 @@ class WandbLogger:
             logger.warning("Không tìm thấy CSV history để log W&B: %s", csv_path)
             return
 
-        with csv_path.open("r", encoding="utf-8") as file:
-            reader = csv.DictReader(file)
+        try:
+            with csv_path.open("r", encoding="utf-8") as file:
+                reader = csv.DictReader(file)
 
-            for row_index, row in enumerate(reader):
-                stripped_row = {
-                    key.strip(): value
-                    for key, value in row.items()
-                    if key is not None
-                }
+                for row_index, row in enumerate(reader):
+                    stripped_row = {
+                        key.strip(): value
+                        for key, value in row.items()
+                        if key is not None
+                    }
 
-                step = row_index + 1
+                    step = row_index
 
-                if step_column in stripped_row:
-                    try:
-                        step = int(float(str(stripped_row[step_column]).strip())) + 1
-                    except ValueError:
-                        step = row_index + 1
+                    if step_column in stripped_row:
+                        try:
+                            step = int(float(str(stripped_row[step_column]).strip()))
+                        except ValueError:
+                            step = row_index
 
-                cleaned_row: Dict[str, Any] = {}
+                    cleaned_row: Dict[str, float] = {}
 
-                for raw_key, raw_value in stripped_row.items():
-                    if raw_key == step_column:
-                        continue
+                    for raw_key, raw_value in stripped_row.items():
+                        if raw_key == step_column:
+                            continue
 
-                    key = f"{prefix}{raw_key}"
+                        metric_key = f"{prefix}{raw_key}" if prefix else raw_key
 
-                    try:
-                        value: Any = float(str(raw_value).strip())
-                    except ValueError:
-                        continue
+                        try:
+                            metric_value = float(str(raw_value).strip())
+                        except ValueError:
+                            continue
 
-                    cleaned_row[key] = value
+                        cleaned_row[metric_key] = metric_value
 
-                if cleaned_row:
-                    self.log(cleaned_row, step=step)
+                    if cleaned_row:
+                        self.log(cleaned_row, step=step)
+
+            logger.info("Đã log CSV history lên W&B: %s", csv_path)
+
+        except Exception as exc:
+            logger.warning("Lỗi khi log CSV history lên W&B %s: %s", csv_path, exc)
 
     def finish(self) -> None:
         if self.enabled and self.run is not None:
