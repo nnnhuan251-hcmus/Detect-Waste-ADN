@@ -62,7 +62,7 @@ scheduler:
   warmup:
     enabled: true
     warmup_epochs: 3
-    warmup_start_lr: 0.000001
+    # warmup_start_lr: 0.000001
   cosine:
     min_lr: 0.000001
 
@@ -73,6 +73,7 @@ fine_tuning:
   freeze_epochs: 5
   gradual_unfreeze: true
   unfreeze_schedule:
+    # documentation only; current trainer derives this from freeze_epochs
     - epoch: 0
       unfreeze: classifier_head
       note: classifier head is trainable while backbone is frozen
