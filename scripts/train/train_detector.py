@@ -103,6 +103,9 @@ def main() -> None:
     if args.use_wandb:
         tracking_config["use_wandb"] = True
 
+        if tracking_config.get("mode") in {None, "disabled"}:
+            tracking_config["mode"] = "online"
+
     if args.wandb_mode is not None:
         tracking_config["mode"] = args.wandb_mode
 
