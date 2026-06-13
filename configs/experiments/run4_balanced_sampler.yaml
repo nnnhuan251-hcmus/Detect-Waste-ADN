@@ -91,4 +91,6 @@ tracking:
   log_model: true
   watch_model: false
   tags:
+    - strong_aug
+    - focal_loss
     - balanced_sampler
