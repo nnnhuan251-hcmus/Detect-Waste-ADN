@@ -88,11 +88,9 @@ tracking:
   mode: disabled
   project: waste-detection-adn
   entity: null
-  group: ablation
+  group: ablation_study
   log_code: false
   log_model: true
   watch_model: false
   tags:
     - strong_aug
-    - focal_loss
-    - constant_lr
