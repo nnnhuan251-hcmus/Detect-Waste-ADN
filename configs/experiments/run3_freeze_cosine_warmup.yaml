@@ -104,7 +104,7 @@ checkpoint:
 
 tracking:
   use_wandb: false
-  project: waste-detection-taco
+  project: waste-detection-adn
   group: ablation
   tags:
     - strong_aug
