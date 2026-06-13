@@ -115,8 +115,8 @@ class COCOValidator:
                 image_id_to_image[image_id] = image
 
             file_name = image.get("file_name")
-            width = image.get("width")
-            height = image.get("height")
+            width_raw = image.get("width")
+            height_raw = image.get("height")
 
             # Ép kiểu an toàn
             try:
