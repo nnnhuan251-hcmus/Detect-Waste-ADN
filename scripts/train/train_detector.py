@@ -4,6 +4,7 @@ import argparse
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Iterable, List
 
 from waste_detection.config.config_loader import ConfigLoader
 from waste_detection.tracking.experiment_registry import ExperimentRegistry
@@ -15,18 +16,10 @@ from waste_detection.utils.seed import set_seed
 
 logger = logging.getLogger("train_detector")
 
-def infer_detector_wandb_group(model_name: str) -> str:
-    if model_name == "hybrid_yolov8n_effb0":
-        return "hybrid_detector"
+DEFAULT_WANDB_PROJECT = "waste-detection-adn"
+LEGACY_WANDB_PROJECT = "waste-detection-taco"
 
-    if model_name == "yolov8s":
-        return "yolov8s_detector"
 
-    if model_name == "rtdetr_l":
-        return "rtdetr_l_detector"
-
-    return "detector"
-    
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Train detector using Ultralytics backend."
@@ -82,7 +75,83 @@ def parse_args() -> argparse.Namespace:
         help="W&B entity/team/user. Có thể bỏ trống.",
     )
 
+    parser.add_argument(
+        "--wandb-project",
+        type=str,
+        default=None,
+        help="Override W&B project.",
+    )
+
     return parser.parse_args()
+
+
+def unique_tags(tags: Iterable[str]) -> List[str]:
+    seen = set()
+    result = []
+
+    for tag in tags:
+        tag = str(tag)
+
+        if tag not in seen:
+            result.append(tag)
+            seen.add(tag)
+
+    return result
+
+
+def infer_detector_wandb_group(model_name: str) -> str:
+    if model_name == "hybrid_yolov8n_effb0":
+        return "hybrid_detector"
+
+    if model_name == "yolov8s":
+        return "yolov8s_detector"
+
+    if model_name == "rtdetr_l":
+        return "rtdetr_l_detector"
+
+    return "detector"
+
+
+def normalize_wandb_tracking_config(
+    tracking_config: dict,
+    args: argparse.Namespace,
+) -> dict:
+    """
+    Apply CLI overrides and protect against the common case:
+    --use-wandb is passed but YAML still has mode: disabled.
+    """
+    if args.use_wandb:
+        tracking_config["use_wandb"] = True
+
+    if args.wandb_project is not None:
+        tracking_config["project"] = args.wandb_project
+
+    if args.wandb_entity is not None:
+        tracking_config["entity"] = args.wandb_entity
+
+    if args.wandb_mode is not None:
+        tracking_config["mode"] = args.wandb_mode
+
+        if args.wandb_mode == "disabled":
+            tracking_config["use_wandb"] = False
+
+    if bool(tracking_config.get("use_wandb", False)):
+        if tracking_config.get("mode") in {None, "", "disabled"}:
+            tracking_config["mode"] = "online"
+
+    project = str(tracking_config.get("project") or DEFAULT_WANDB_PROJECT)
+
+    if project == LEGACY_WANDB_PROJECT:
+        logger.warning(
+            "W&B project đang là legacy '%s'. Tự động đổi sang '%s'.",
+            LEGACY_WANDB_PROJECT,
+            DEFAULT_WANDB_PROJECT,
+        )
+        project = DEFAULT_WANDB_PROJECT
+
+    tracking_config["project"] = project
+
+    return tracking_config
 
 
 def main() -> None:
@@ -110,21 +179,10 @@ def main() -> None:
     experiment_config = loaded_config.experiment
 
     tracking_config = experiment_config.setdefault("tracking", {})
-
-    if args.use_wandb:
-        tracking_config["use_wandb"] = True
-
-        if tracking_config.get("mode") in {None, "disabled"}:
-            tracking_config["mode"] = "online"
-
-    if args.wandb_mode is not None:
-        tracking_config["mode"] = args.wandb_mode
-
-        if args.wandb_mode == "disabled":
-            tracking_config["use_wandb"] = False
-
-    if args.wandb_entity is not None:
-        tracking_config["entity"] = args.wandb_entity
+    tracking_config = normalize_wandb_tracking_config(
+        tracking_config=tracking_config,
+        args=args,
+    )
 
     LoggerSetup.initialize(
         log_file=loaded_config.system.log_file_path,
@@ -160,8 +218,20 @@ def main() -> None:
     output_dir = output_root / model_name / run_name
 
     wandb_group = tracking_config.get("group")
+
     if wandb_group in {None, "", "ablation", "ablation_study"}:
         wandb_group = infer_detector_wandb_group(model_name)
+
+    wandb_tags = unique_tags(
+        list(tracking_config.get("tags", []))
+        + [
+            "detector",
+            "train_detector",
+            model_name,
+            detector_mode,
+            run_name,
+        ]
+    )
 
     wandb_config = {
         "data": data_config,
@@ -173,12 +243,12 @@ def main() -> None:
 
     wandb_logger = WandbLogger(
         enabled=bool(tracking_config.get("use_wandb", False)),
-        project=str(tracking_config.get("project", "waste-detection-adn")),
+        project=str(tracking_config.get("project", DEFAULT_WANDB_PROJECT)),
         entity=tracking_config.get("entity"),
-        run_name=f"{run_name}__{model_name}__detector",
+        run_name=f"{run_name}__{model_name}__train_detector",
         config=to_serializable(wandb_config),
         group=wandb_group,
-        tags=tracking_config.get("tags", []),
+        tags=wandb_tags,
         mode=tracking_config.get("mode"),
         job_type="train_detector",
         notes=experiment_config.get("experiment", {}).get("description"),
@@ -194,7 +264,7 @@ def main() -> None:
             output_root=output_root,
         )
 
-        summary = trainer.train()
+        summary = trainer.train() or {}
 
         best_weight_path = output_dir / "weights" / "best.pt"
         last_weight_path = output_dir / "weights" / "last.pt"
@@ -206,9 +276,14 @@ def main() -> None:
                 "model_name": model_name,
                 "run_name": run_name,
                 "detector_mode": detector_mode,
-                "best_weight_path": str(best_weight_path),
-                "last_weight_path": str(last_weight_path),
+                "data_yaml_path": str(data_yaml_path),
                 "output_dir": str(output_dir),
+                "best_weight_path": str(best_weight_path),
+                "best_weight_exists": best_weight_path.exists(),
+                "last_weight_path": str(last_weight_path),
+                "last_weight_exists": last_weight_path.exists(),
+                "results_csv_path": str(results_csv_path),
+                "results_csv_exists": results_csv_path.exists(),
             }
         )
 
@@ -218,6 +293,8 @@ def main() -> None:
                 prefix="detector/",
                 step_column="epoch",
             )
+        else:
+            logger.warning("Không tìm thấy detector results.csv: %s", results_csv_path)
 
         if bool(tracking_config.get("log_model", True)):
             if best_weight_path.exists():
@@ -234,7 +311,10 @@ def main() -> None:
                     },
                 )
             else:
-                logger.warning("Không tìm thấy best detector checkpoint: %s", best_weight_path)
+                logger.warning(
+                    "Không tìm thấy best detector checkpoint: %s",
+                    best_weight_path,
+                )
 
             if last_weight_path.exists():
                 wandb_logger.log_artifact(
@@ -250,7 +330,10 @@ def main() -> None:
                     },
                 )
             else:
-                logger.warning("Không tìm thấy last detector checkpoint: %s", last_weight_path)
+                logger.warning(
+                    "Không tìm thấy last detector checkpoint: %s",
+                    last_weight_path,
+                )
 
         if train_summary_path.exists():
             wandb_logger.log_artifact(
@@ -261,7 +344,10 @@ def main() -> None:
                 metadata=summary,
             )
         else:
-            logger.warning("Không tìm thấy detector train summary: %s", train_summary_path)
+            logger.warning(
+                "Không tìm thấy detector train summary: %s",
+                train_summary_path,
+            )
 
     registry = ExperimentRegistry(
         Path(loaded_config.system.project_root)
@@ -280,8 +366,12 @@ def main() -> None:
             "data_yaml_path": str(data_yaml_path),
             "output_dir": str(output_dir),
             "best_checkpoint": str(output_dir / "weights" / "best.pt"),
+            "last_checkpoint": str(output_dir / "weights" / "last.pt"),
             "wandb_enabled": bool(tracking_config.get("use_wandb", False)),
             "wandb_mode": tracking_config.get("mode"),
+            "wandb_project": tracking_config.get("project"),
+            "wandb_entity": tracking_config.get("entity"),
+            "wandb_group": wandb_group,
         }
     )
 
