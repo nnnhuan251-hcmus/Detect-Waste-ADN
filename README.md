@@ -154,7 +154,6 @@ our_pipeline/
 ├── configs/
 │   ├── data/
 │   │   ├── taco_7class.yaml
-│   │   ├── taco_7class_kaggle.yaml
 │   │   └── mapping_label.json
 │   │
 │   ├── models/
