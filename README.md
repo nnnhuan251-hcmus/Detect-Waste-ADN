@@ -1,109 +1,160 @@
 # Waste Detection with Transfer Learning and Fine-tuning
 
-This repository contains the source code for a Deep Learning final project on waste detection and classification using transfer learning and fine-tuning.
+## 1. Project Overview
 
-The project focuses on building and comparing three model pipelines:
+This repository implements a deep learning pipeline for **waste detection and classification** using transfer learning and fine-tuning.
 
-1. **Hybrid YOLOv8n + EfficientNet-B0**
+The project focuses on detecting waste objects in images and predicting their waste category. The input is a natural image, and the output is an image with bounding boxes, class labels, and confidence scores.
 
-   * YOLOv8n detects waste objects as binary `waste`.
-   * EfficientNet-B0 classifies each detected crop into 7 waste categories.
-   * Final confidence is computed from detector confidence and classifier confidence.
+The project uses two main data sources:
 
-2. **YOLOv8s detector-only**
+1. **TACO dataset**
+   Official COCO-format annotation file: `annotations.json`.
 
-   * YOLOv8s is trained directly on 7 waste classes.
+2. **Roboflow COCO-format dataset**
+   External COCO-format dataset used for extended experiments and robustness comparison.
 
-3. **RT-DETR-L detector-only**
-
-   * RT-DETR-L is trained directly on 7 waste classes as a transformer-based detector comparison.
-
-The main dataset is the official TACO dataset using the official COCO-format `annotations.json`. The pipeline maps original TACO categories into 7 target waste classes.
-
----
-
-## 1. Target Classes
-
-The project uses exactly 7 target classes:
+The target label space is standardized into **7 waste classes**:
 
 ```text
-plastic
-paper
-metal
-glass
-organic
-cigarette
-other
-```
-
-Class ids are 0-based:
-
-```text
-plastic: 0
-paper: 1
-metal: 2
-glass: 3
-organic: 4
-cigarette: 5
-other: 6
+plastic, paper, metal, glass, organic, cigarette, other
 ```
 
 ---
 
-## 2. Main Dataset
+## 2. Main Objectives
 
-Primary dataset:
+The project is designed to answer the following questions:
 
-```text
-TACO official COCO annotations
-```
-
-Expected raw dataset structure:
-
-```text
-data/raw/TACO/
-├── annotations.json
-├── batch_1/
-├── batch_2/
-├── batch_3/
-├── ...
-└── batch_15/
-```
-
-Important notes:
-
-* Use the official `annotations.json`.
-* Do not use `annotations_unofficial.json`.
-* Original TACO categories are mapped into 7 target classes using:
-
-```text
-configs/data/mapping_label.json
-```
+* Can transfer learning improve waste detection performance on a small dataset?
+* How does a hybrid detector-classifier architecture compare with detector-only models?
+* How do data augmentation, focal loss, staged fine-tuning, cosine learning rate scheduling, and balanced sampling affect performance?
+* What types of waste are commonly misclassified?
+* How well does the trained model generalize to new unseen images?
 
 ---
 
-## 3. Additional Dataset Support
+## 3. Model Architectures
 
-The main experiment uses TACO official COCO annotations.
+This project compares three model directions.
 
-The repository also includes an adapter for Roboflow COCO datasets. This allows a Roboflow COCO dataset with `train`, `valid`, and `test` splits to be imported into the same internal COCO split format used by this project.
+### 3.1 Hybrid YOLOv8n + EfficientNet-B0
 
-Roboflow support is optional and does not change the main TACO experiment.
+The hybrid model is the main architecture of the project.
+
+```text
+Input image
+→ YOLOv8n binary detector
+→ detected waste bounding boxes
+→ crop each detected object
+→ EfficientNet-B0 classifier
+→ final waste class and confidence score
+```
+
+In this architecture:
+
+* YOLOv8n detects whether an object is waste or not.
+* EfficientNet-B0 classifies each detected crop into one of the 7 target classes.
+* The final confidence score is computed from detector confidence and classifier confidence.
+
+This architecture separates localization and classification, which is useful when the detector is lightweight and the classifier can focus on cropped object regions.
 
 ---
 
-## 4. Project Structure
+### 3.2 YOLOv8s Detector-only
+
+YOLOv8s is trained directly as a 7-class object detector.
+
+```text
+Input image
+→ YOLOv8s
+→ bounding boxes + 7-class labels + confidence scores
+```
+
+This model acts as a detector-only baseline for comparison with the hybrid approach.
+
+---
+
+### 3.3 RT-DETR-L Detector-only
+
+RT-DETR-L is also trained directly as a 7-class detector.
+
+```text
+Input image
+→ RT-DETR-L
+→ bounding boxes + 7-class labels + confidence scores
+```
+
+RT-DETR-L is included as a transformer-based detector comparison model. Due to GPU memory requirements, it may need a smaller batch size than YOLO-based models.
+
+---
+
+## 4. Ablation Studies
+
+The project includes four experiment configurations.
+
+### Run 1: Baseline
+
+```text
+Minimal augmentation
+Cross entropy loss
+No class weighting
+No balanced sampler
+Constant learning rate
+End-to-end fine-tuning
+```
+
+### Run 2: Strong Augmentation + Focal Loss
+
+```text
+Strong augmentation
+Detector-side mosaic and color jitter
+Classifier-side stronger crop augmentation
+Focal loss for classifier
+Class weighting enabled
+```
+
+### Run 3: Freeze/Unfreeze + Cosine Warm-up
+
+```text
+Strong augmentation
+Focal loss
+Staged fine-tuning
+Backbone freeze/unfreeze schedule
+Cosine annealing scheduler
+Warm-up
+Gradient clipping
+```
+
+### Run 4: Balanced Sampler
+
+```text
+Strong augmentation
+Focal loss
+Weighted random sampler for classifier crops
+No class weighting
+```
+
+Run 4 is mainly designed for the EfficientNet-B0 classifier. It is not essential for detector-only models because the custom sampler is not used by the Ultralytics detector training pipeline.
+
+---
+
+## 5. Repository Structure
 
 ```text
 our_pipeline/
+│
 ├── README.md
 ├── requirements.txt
+├── requirements-optional.txt
+├── requirements-dev.txt
 ├── pyproject.toml
 ├── .gitignore
 │
 ├── configs/
 │   ├── data/
 │   │   ├── taco_7class.yaml
+│   │   ├── taco_7class_kaggle.yaml
 │   │   └── mapping_label.json
 │   │
 │   ├── models/
@@ -114,27 +165,34 @@ our_pipeline/
 │   └── experiments/
 │       ├── run1_baseline.yaml
 │       ├── run2_strong_aug.yaml
-│       └── run3_freeze_cosine_warmup.yaml
+│       ├── run3_freeze_cosine_warmup.yaml
+│       └── run4_balanced_sampler.yaml
 │
 ├── data/
 │   ├── raw/
 │   ├── interim/
-│   ├── processed/
-│   └── README.md
+│   └── processed/
+│       ├── coco_7class/
+│       ├── yolo_7class/
+│       ├── yolo_binary_waste/
+│       └── crops_7class/
 │
 ├── notebooks/
-│   └── kaggle_runner.ipynb
+│   ├── 01_preprocess_taco_roboflow.ipynb
+│   ├── 02_train_hybrid_yolov8n_effb0.ipynb
+│   ├── 03_train_yolov8s_detector.ipynb
+│   └── 04_train_rtdetr_l_detector.ipynb
 │
 ├── scripts/
 │   ├── data/
 │   │   ├── check_coco.py
-│   │   ├── build_label_mapping.py
 │   │   ├── prepare_taco.py
+│   │   ├── build_label_mapping.py
 │   │   ├── split_coco.py
 │   │   ├── convert_coco_to_yolo.py
 │   │   ├── create_crop_dataset.py
-│   │   ├── apply_orthogonal_augmentation.py
-│   │   └── import_roboflow_coco.py
+│   │   ├── import_roboflow_coco.py
+│   │   └── apply_orthogonal_augmentation.py
 │   │
 │   ├── train/
 │   │   ├── train_detector.py
@@ -153,242 +211,74 @@ our_pipeline/
 │   └── waste_detection/
 │       ├── config/
 │       ├── data/
-│       ├── models/
-│       ├── training/
 │       ├── evaluation/
 │       ├── inference/
-│       ├── visualization/
+│       ├── models/
+│       ├── pipelines/
+│       ├── postprocessing/
 │       ├── tracking/
-│       └── utils/
+│       ├── training/
+│       ├── utils/
+│       └── visualization/
 │
-├── outputs/
-│   ├── checkpoints/
-│   ├── metrics/
-│   ├── predictions/
-│   ├── figures/
-│   └── logs/
-│
-└── tests/
+└── outputs/
+    ├── checkpoints/
+    ├── figures/
+    ├── logs/
+    ├── metrics/
+    └── predictions/
 ```
 
 ---
 
-## 5. Installation
+## 6. Data Processing Pipeline
 
-Install dependencies:
+The preprocessing pipeline converts raw COCO annotations into formats required by the training pipelines.
+
+### 6.1 TACO Preprocessing
+
+The TACO preprocessing pipeline performs:
+
+1. Load official TACO `annotations.json`.
+2. Validate COCO structure.
+3. Map original TACO categories into 7 target classes.
+4. Sanitize bounding boxes.
+5. Split into train/validation/test using multilabel stratification.
+6. Convert COCO to YOLO format:
+
+   * 7-class YOLO format for detector-only models.
+   * binary waste YOLO format for the hybrid detector.
+7. Create crop dataset for EfficientNet-B0 classifier.
+8. Save preprocessing reports.
+
+Main command:
 
 ```bash
-pip install -r requirements.txt
-```
-
-Install the repository as an editable Python package:
-
-```bash
-pip install -e .
-```
-
-After installation, project modules can be imported as:
-
-```python
-from waste_detection.config.config_loader import ConfigLoader
-from waste_detection.data.crop_builder import CropDatasetBuilder
-from waste_detection.inference.hybrid_predictor import HybridPredictor
+python scripts/data/prepare_taco.py \
+  --data-config configs/data/taco_7class.yaml
 ```
 
 ---
 
-## 6. Data Preparation Pipeline
+### 6.2 Roboflow COCO Preprocessing
 
-The TACO preparation pipeline performs the following steps:
+The Roboflow dataset is imported through a COCO adapter.
 
-```text
-Official TACO annotations.json
-→ Validate COCO format
-→ Map original TACO categories into 7 target classes
-→ Split into train/val/test at image level
-→ Convert COCO into YOLO 7-class format
-→ Convert COCO into YOLO binary-waste format
-→ Create crop dataset for EfficientNet-B0
-```
+The pipeline:
 
-Generated data:
+1. Read Roboflow COCO annotations.
+2. Normalize image paths.
+3. Standardize labels into the 7-class target label space.
+4. Convert to the same processed structure as TACO.
+5. Optionally combine with the processed TACO dataset.
 
-```text
-data/processed/coco_7class/
-├── annotations_7class.json
-├── train_annotations.json
-├── val_annotations.json
-└── test_annotations.json
-```
-
-```text
-data/processed/yolo_7class/
-├── data.yaml
-├── images/
-└── labels/
-```
-
-```text
-data/processed/yolo_binary_waste/
-├── data.yaml
-├── images/
-└── labels/
-```
-
-```text
-data/processed/crops_7class/
-├── train/
-├── val/
-└── test/
-```
+Roboflow is used as an external dataset for additional experiments and robustness analysis.
 
 ---
 
-## 7. Model Pipelines
+## 7. Training Pipeline
 
-### 7.1 Hybrid YOLOv8n + EfficientNet-B0
-
-The hybrid model is trained in two independent stages:
-
-```text
-Stage 1:
-YOLOv8n binary detector
-Input: full original images
-Output: bounding boxes for waste objects
-
-Stage 2:
-EfficientNet-B0 classifier
-Input: ground-truth object crops from train/val/test
-Output: 7-class waste prediction
-```
-
-End-to-end evaluation is performed differently:
-
-```text
-Full image
-→ YOLOv8n predicts bounding boxes
-→ Predicted boxes are cropped
-→ EfficientNet-B0 classifies each predicted crop
-→ Final hybrid prediction is evaluated against ground truth
-```
-
-Important:
-
-```text
-Ground-truth crops are used only for isolated classifier training/evaluation.
-Final hybrid test metrics must use full images, not ground-truth crops.
-```
-
----
-
-### 7.2 YOLOv8s Detector-only
-
-YOLOv8s is trained directly on the 7 waste classes.
-
-Input:
-
-```text
-data/processed/yolo_7class/data.yaml
-```
-
-Output:
-
-```text
-7-class bounding box prediction
-```
-
----
-
-### 7.3 RT-DETR-L Detector-only
-
-RT-DETR-L is used as the transformer-based detector comparison.
-
-Input:
-
-```text
-data/processed/yolo_7class/data.yaml
-```
-
-Output:
-
-```text
-7-class bounding box prediction
-```
-
----
-
-## 8. Experiment Configurations
-
-The repository contains three main experiment configurations:
-
-```text
-configs/experiments/run1_baseline.yaml
-configs/experiments/run2_strong_aug.yaml
-configs/experiments/run3_freeze_cosine_warmup.yaml
-```
-
-### Run 1: Baseline
-
-```text
-Resize
-Normalize
-Pretrained initialization
-Constant learning rate
-No strong augmentation
-No focal loss
-No staged freeze/unfreeze
-```
-
-### Run 2: Strong Augmentation + Focal Loss
-
-```text
-Horizontal flip
-Exact 90/180-degree classifier rotation
-Mosaic for detector
-Color jitter
-Focal loss for classifier
-Class weighting
-Constant learning rate
-```
-
-Detector diagonal rotation is intentionally disabled to avoid distorted axis-aligned bounding boxes.
-
-### Run 3: Strong Augmentation + Freeze/Cosine/Warmup
-
-```text
-Strong augmentation
-Focal loss
-Class weighting
-Backbone freezing
-Gradual unfreezing
-Cosine annealing scheduler
-Warm-up
-Gradient clipping
-```
-
----
-
-## 9. Training Scripts
-
-### 9.1 Train detector
-
-```bash
-python scripts/train/train_detector.py \
-  --data-config configs/data/taco_7class.yaml \
-  --model-config configs/models/yolov8s.yaml \
-  --experiment-config configs/experiments/run1_baseline.yaml
-```
-
-For RT-DETR-L:
-
-```bash
-python scripts/train/train_detector.py \
-  --data-config configs/data/taco_7class.yaml \
-  --model-config configs/models/rtdetr_l.yaml \
-  --experiment-config configs/experiments/run1_baseline.yaml
-```
-
-For hybrid YOLOv8n binary detector:
+### 7.1 Train Hybrid YOLOv8n Binary Detector
 
 ```bash
 python scripts/train/train_detector.py \
@@ -397,11 +287,15 @@ python scripts/train/train_detector.py \
   --experiment-config configs/experiments/run1_baseline.yaml
 ```
 
+The binary detector is trained on:
+
+```text
+data/processed/yolo_binary_waste/
+```
+
 ---
 
-### 9.2 Train classifier
-
-The classifier is used only for the hybrid pipeline.
+### 7.2 Train EfficientNet-B0 Classifier
 
 ```bash
 python scripts/train/train_classifier.py \
@@ -410,201 +304,336 @@ python scripts/train/train_classifier.py \
   --experiment-config configs/experiments/run1_baseline.yaml
 ```
 
+The classifier is trained on:
+
+```text
+data/processed/crops_7class/
+```
+
 ---
 
-## 10. Evaluation Scripts
+### 7.3 Train YOLOv8s Detector-only Model
 
-### 10.1 Evaluate detector
+```bash
+python scripts/train/train_detector.py \
+  --data-config configs/data/taco_7class.yaml \
+  --model-config configs/models/yolov8s.yaml \
+  --experiment-config configs/experiments/run1_baseline.yaml
+```
+
+The detector is trained on:
+
+```text
+data/processed/yolo_7class/
+```
+
+---
+
+### 7.4 Train RT-DETR-L Detector-only Model
+
+```bash
+python scripts/train/train_detector.py \
+  --data-config configs/data/taco_7class.yaml \
+  --model-config configs/models/rtdetr_l.yaml \
+  --experiment-config configs/experiments/run1_baseline.yaml
+```
+
+RT-DETR-L may require smaller batch size due to higher GPU memory consumption.
+
+---
+
+## 8. Evaluation Pipeline
+
+### 8.1 Detector Evaluation
 
 ```bash
 python scripts/eval/evaluate_detector.py \
   --data-config configs/data/taco_7class.yaml \
   --model-config configs/models/yolov8s.yaml \
-  --weights outputs/checkpoints/path_to_detector_best.pt \
+  --experiment-config configs/experiments/run1_baseline.yaml \
+  --weights outputs/checkpoints/yolov8s/run1_baseline/weights/best.pt \
   --split test
 ```
 
-### 10.2 Evaluate classifier
+Expected metrics:
+
+```text
+mAP50
+mAP50-95
+mAP75
+precision
+recall
+F1 score
+per-class mAP
+```
+
+---
+
+### 8.2 Classifier Evaluation
 
 ```bash
 python scripts/eval/evaluate_classifier.py \
   --data-config configs/data/taco_7class.yaml \
   --model-config configs/models/hybrid_yolov8n_effb0.yaml \
-  --weights outputs/checkpoints/path_to_classifier_best.pth \
+  --weights outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth \
   --split test
 ```
 
-### 10.3 Evaluate hybrid end-to-end
+Expected metrics:
+
+```text
+accuracy
+macro F1
+weighted F1
+macro precision
+macro recall
+classification report
+confusion matrix
+wrong predictions
+error analysis
+```
+
+---
+
+### 8.3 Hybrid End-to-End Evaluation
 
 ```bash
 python scripts/eval/evaluate_hybrid.py \
   --data-config configs/data/taco_7class.yaml \
   --model-config configs/models/hybrid_yolov8n_effb0.yaml \
-  --detector-weights outputs/checkpoints/path_to_yolov8n_binary_best.pt \
-  --classifier-weights outputs/checkpoints/path_to_classifier_best.pth \
-  --split test
+  --detector-weights outputs/checkpoints/hybrid_yolov8n_effb0/run1_baseline/weights/best.pt \
+  --classifier-weights outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth \
+  --split test \
+  --run-name H1_run1_baseline \
+  --save-visualizations
+```
+
+Expected metrics:
+
+```text
+detection TP / FP / FN
+precision
+recall
+F1
+classification accuracy on matched objects
+hybrid mAP50
+hybrid mAP50-95
+average inference time
+FPS
 ```
 
 ---
 
-## 11. Inference on a Single Image
+## 9. Inference on New Images
+
+Run inference on a single image:
 
 ```bash
 python scripts/infer/infer_image.py \
   --data-config configs/data/taco_7class.yaml \
   --model-config configs/models/hybrid_yolov8n_effb0.yaml \
-  --detector-weights outputs/checkpoints/path_to_yolov8n_binary_best.pt \
-  --classifier-weights outputs/checkpoints/path_to_classifier_best.pth \
-  --image path/to/test_image.jpg \
+  --detector-weights outputs/checkpoints/hybrid_yolov8n_effb0/run1_baseline/weights/best.pt \
+  --classifier-weights outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth \
+  --image path/to/new_image.jpg \
   --save-dir outputs/predictions
+```
+
+With test-time augmentation and weighted boxes fusion:
+
+```bash
+python scripts/infer/infer_image.py \
+  --data-config configs/data/taco_7class.yaml \
+  --model-config configs/models/hybrid_yolov8n_effb0.yaml \
+  --detector-weights outputs/checkpoints/hybrid_yolov8n_effb0/run1_baseline/weights/best.pt \
+  --classifier-weights outputs/checkpoints/efficientnet_b0/run1_baseline/best.pth \
+  --image path/to/new_image.jpg \
+  --save-dir outputs/predictions \
+  --use-tta \
+  --use-wbf
 ```
 
 The output includes:
 
 ```text
-Annotated image
-Prediction JSON
-Bounding boxes
-Predicted class labels
-Detector confidence
-Classifier confidence
-Final confidence
+prediction image
+prediction JSON
+inference time
+number of detections
+class labels
+confidence scores
+bounding boxes
 ```
 
 ---
 
-## 12. Metrics
+## 10. Weights & Biases Tracking
 
-### Detection metrics
+Training can optionally be tracked with Weights & Biases.
 
-```text
-mAP@50
-mAP@50:95
-Precision
-Recall
-F1
-Per-class AP
-Inference time
-FPS
-```
-
-### Classification metrics
-
-```text
-Accuracy
-Macro Precision
-Macro Recall
-Macro F1
-Weighted F1
-Confusion matrix
-Wrong prediction visualization
-```
-
-### Hybrid metrics
-
-```text
-End-to-end precision
-End-to-end recall
-End-to-end F1
-Classification accuracy on matched boxes
-mAP@50
-mAP@50:95
-False positives
-Missed objects
-Classification errors
-Localization errors
-```
-
----
-
-## 13. Outputs
-
-Training and evaluation outputs are saved under:
-
-```text
-outputs/
-├── checkpoints/
-├── metrics/
-├── predictions/
-├── figures/
-└── logs/
-```
-
-These files are ignored by Git and should not be committed.
-
----
-
-## 14. Testing
-
-Run unit tests:
+Example:
 
 ```bash
-pytest
+python scripts/train/train_classifier.py \
+  --data-config configs/data/taco_7class.yaml \
+  --model-config configs/models/hybrid_yolov8n_effb0.yaml \
+  --experiment-config configs/experiments/run1_baseline.yaml \
+  --use-wandb \
+  --wandb-mode online
 ```
 
-Tests cover:
+Tracked information includes:
 
 ```text
-Label mapping
-BBox conversion and IoU
-Crop dataset builder
-Orthogonal bbox-aware augmentation
+training loss
+validation loss
+accuracy
+macro F1
+learning rate
+model checkpoint artifacts
+training configuration
+```
+
+For detector models, Ultralytics training results are logged through the generated `results.csv`.
+
+---
+
+## 11. Expected Output Artifacts
+
+After running experiments, the repository saves results into:
+
+```text
+outputs/checkpoints/
+```
+
+Model checkpoints:
+
+```text
+YOLO / RT-DETR:
+outputs/checkpoints/{model_name}/{run_name}/weights/best.pt
+outputs/checkpoints/{model_name}/{run_name}/weights/last.pt
+
+EfficientNet-B0:
+outputs/checkpoints/efficientnet_b0/{run_name}/best.pth
+```
+
+```text
+outputs/metrics/
+```
+
+Evaluation metrics:
+
+```text
+detector metrics
+classifier metrics
+hybrid metrics
+error analysis
+wrong predictions
+experiment registry
+```
+
+```text
+outputs/figures/
+```
+
+Figures for reporting:
+
+```text
+training curves
+confusion matrices
+wrong prediction grids
+detector PR/F1 curves
+hybrid prediction visualizations
+```
+
+```text
+outputs/predictions/
+```
+
+Inference results:
+
+```text
+predicted images
+prediction JSON files
 ```
 
 ---
 
-## 15. Git Notes
+## 12. Recommended Experiment Matrix
 
-Do not commit:
+### Hybrid Model
 
 ```text
-data/raw/
-data/processed/
-outputs/
-runs/
-wandb/
-*.pt
-*.pth
+H1 = detector run1 + classifier run1
+H2 = detector run2 + classifier run2
+H3 = detector run3 + classifier run3
+H4 = detector run2 + classifier run4
 ```
 
-Commit only:
+Run 4 is paired with detector run 2 because run 4 mainly changes the classifier sampling strategy.
+
+### YOLOv8s Detector-only
 
 ```text
-source code
-configs
-scripts
-tests
-README
-requirements
-pyproject.toml
+YOLOv8s run1
+YOLOv8s run2
+YOLOv8s run3
+```
+
+### RT-DETR-L Detector-only
+
+```text
+RT-DETR-L run1
+RT-DETR-L run2 if GPU memory allows
+RT-DETR-L run3 if GPU memory allows
 ```
 
 ---
 
-## 16. Project Scope
+## 13. Environment Setup
 
-This project does not perform segmentation.
+Install dependencies:
 
-The main scope is:
-
-```text
-Object detection
-Crop-based image classification
-Hybrid detector-classifier inference
-Transfer learning
-Fine-tuning
-Ablation study
-Error analysis
+```bash
+pip install -r requirements.txt
 ```
 
-The final report should clearly distinguish:
+Optional dependencies:
 
-```text
-Classifier-only evaluation on ground-truth crops
+```bash
+pip install -r requirements-optional.txt
 ```
 
-from:
+For local development:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Set Python path:
+
+```bash
+export PYTHONPATH=$(pwd)/src:$PYTHONPATH
+```
+
+---
+
+## 14. Notes
+
+* The hybrid model is not trained end-to-end as a single neural network.
+* YOLOv8n and EfficientNet-B0 are trained separately.
+* End-to-end behavior happens during inference and evaluation.
+* TACO and Roboflow data should be standardized into the same 7-class label space before training.
+* Offline augmentation must be applied only to the training split to avoid data leakage.
+* Smoke tests should be run before full training to catch runtime, path, and configuration errors.
+
+---
+
+## 15. Authors
+
+This repository was developed for the project:
 
 ```text
-Hybrid end-to-end evaluation on full original images
+Waste Detection with Transfer Learning and Fine-tuning
 ```
+
+The implementation follows a modular object-oriented design with separated components for data preprocessing, model training, evaluation, inference, visualization, and experiment tracking.
