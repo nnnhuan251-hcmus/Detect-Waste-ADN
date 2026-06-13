@@ -124,6 +124,13 @@ def parse_args() -> argparse.Namespace:
         default=0.001,
     )
 
+    parser.add_argument(
+        "--run-name",
+        type=str,
+        default=None,
+        help="Tên run hybrid evaluation, ví dụ H1_run1, H2_run2.",
+    )
+
     return parser.parse_args()
 
 
@@ -169,6 +176,17 @@ def main() -> None:
         raise FileNotFoundError(
             f"Không tìm thấy classifier weights: {classifier_weights}"
         )
+
+    detector_run_name = detector_weights.parents[1].name
+    classifier_run_name = classifier_weights.parent.name
+
+    hybrid_eval_name = (
+        args.run_name
+        if args.run_name is not None
+        else f"det_{detector_run_name}__clf_{classifier_run_name}"
+    )
+    
+    logger.info("Tên Run Hybrid Evaluation: %s", hybrid_eval_name)
         
     annotation_path = _get_split_annotation_path(data_config, args.split)
 
@@ -249,6 +267,7 @@ def main() -> None:
         / "outputs"
         / "metrics"
         / "hybrid"
+        / hybrid_eval_name
         / args.split
     )
 
@@ -257,6 +276,7 @@ def main() -> None:
         / "outputs"
         / "figures"
         / "hybrid"
+        / hybrid_eval_name
         / args.split
     )
 
