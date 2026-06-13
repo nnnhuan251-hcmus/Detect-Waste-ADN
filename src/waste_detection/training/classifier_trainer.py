@@ -6,7 +6,7 @@ from typing import Dict, List
 
 import torch
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -98,7 +98,7 @@ class ClassifierTrainer(TrainerBase):
             total_epochs=self.epochs,
         )
 
-        self.scaler = GradScaler(enabled=self.mixed_precision and device.type == "cuda")
+        self.scaler = GradScaler("cuda", enabled=self.mixed_precision and device.type == "cuda")
 
         self.best_metric = float("-inf")
         self.early_stop_counter = 0
@@ -185,7 +185,7 @@ class ClassifierTrainer(TrainerBase):
 
             self.optimizer.zero_grad(set_to_none=True)
 
-            with autocast(enabled=self.mixed_precision and self.device.type == "cuda"):
+            with autocast("cuda", enabled=self.mixed_precision and self.device.type == "cuda"):
                 logits = self.model(inputs)
                 loss = self.criterion(logits, labels)
 
