@@ -190,8 +190,15 @@ class WandbLogger:
             type=artifact_type,
             metadata=to_serializable(metadata or {}),
         )
-        artifact.add_file(str(file_path))
-        self.run.log_artifact(artifact, aliases=list(aliases or []))
+        if file_path.is_file():
+            artifact.add_file(str(file_path))
+        else:
+            artifact.add_dir(str(file_path))
+        
+        self.run.log_artifact(
+            artifact,
+            aliases=list(aliases or ["latest"]),
+        )
 
     def log_csv_history(
         self,
@@ -217,26 +224,37 @@ class WandbLogger:
             reader = csv.DictReader(file)
 
             for row_index, row in enumerate(reader):
+                stripped_row = {
+                    key.strip(): value
+                    for key, value in row.items()
+                    if key is not None
+                }
+
+                step = row_index + 1
+
+                if step_column in stripped_row:
+                    try:
+                        step = int(float(str(stripped_row[step_column]).strip())) + 1
+                    except ValueError:
+                        step = row_index + 1
+
                 cleaned_row: Dict[str, Any] = {}
 
-                for raw_key, raw_value in row.items():
-                    key = f"{prefix}{raw_key.strip()}"
+                for raw_key, raw_value in stripped_row.items():
+                    if raw_key == step_column:
+                        continue
+
+                    key = f"{prefix}{raw_key}"
 
                     try:
                         value: Any = float(str(raw_value).strip())
                     except ValueError:
-                        value = str(raw_value).strip()
+                        continue
 
                     cleaned_row[key] = value
 
-                step = row_index + 1
-                if step_column in row:
-                    try:
-                        step = int(float(str(row[step_column]).strip())) + 1
-                    except ValueError:
-                        step = row_index + 1
-
-                self.log(cleaned_row, step=step)
+                if cleaned_row:
+                    self.log(cleaned_row, step=step)
 
     def finish(self) -> None:
         if self.enabled and self.run is not None:
