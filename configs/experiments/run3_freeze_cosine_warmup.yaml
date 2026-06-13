@@ -104,12 +104,12 @@ checkpoint:
 
 tracking:
   use_wandb: false
+  mode: disabled
   project: waste-detection-adn
-  group: ablation
+  entity: null
+  group: ablation_study
+  log_code: false
+  log_model: true
+  watch_model: false
   tags:
-    - strong_aug
-    - focal_loss
-    - freeze_unfreeze
-    - cosine_annealing
-    - warmup
-    - gradient_control
+    - freeze_cosine_warmup
