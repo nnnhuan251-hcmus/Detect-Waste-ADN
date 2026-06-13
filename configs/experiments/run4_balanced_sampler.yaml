@@ -84,7 +84,7 @@ checkpoint:
 tracking:
   use_wandb: false
   mode: disabled
-  project: waste-detection-taco
+  project: waste-detection-adn
   entity: null
   group: ablation
   log_code: false
