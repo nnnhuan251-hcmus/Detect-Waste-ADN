@@ -24,6 +24,15 @@ from waste_detection.utils.seed import set_seed
 
 logger = logging.getLogger("train_classifier")
 
+def infer_classifier_wandb_group(model_name: str) -> str:
+    """Tự động phân nhóm W&B cho Classifier dựa vào tên model."""
+    if "effb0" in model_name:
+        return "effb0_classifier"
+    
+    if "mobilenet" in model_name:
+        return "mobilenet_classifier"
+        
+    return f"{model_name}_classifier"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -247,10 +256,7 @@ def main() -> None:
 
     wandb_group = tracking_config.get("group")
     if wandb_group in {None, "", "ablation", "ablation_study"}:
-        if "effb0" in model_name:
-            wandb_group = "effb0_classifier"
-        else:
-            wandb_group = f"{model_name}_classifier"
+        wandb_group = infer_classifier_wandb_group(model_name)
 
     wandb_logger = WandbLogger(
         enabled=bool(tracking_config.get("use_wandb", False)),
