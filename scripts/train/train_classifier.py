@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-# 1. Thư viện chuẩn của Python
 import argparse
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Iterable, List
 
-# 2. Thư viện bên thứ 3
 from torch.utils.data import DataLoader
 
-# 3. Thư viện nội bộ của dự án
-from waste_detection.data.samplers import SamplerFactory
 from waste_detection.config.config_loader import ConfigLoader
 from waste_detection.data.crop_dataset import CropClassificationDataset
+from waste_detection.data.samplers import SamplerFactory
 from waste_detection.data.transforms import ClassifierTransformFactory
 from waste_detection.models.efficientnet_classifier import EfficientNetB0Classifier
 from waste_detection.tracking.experiment_registry import ExperimentRegistry
@@ -22,17 +20,12 @@ from waste_detection.utils.device import get_device
 from waste_detection.utils.logger import LoggerSetup
 from waste_detection.utils.seed import set_seed
 
+
 logger = logging.getLogger("train_classifier")
 
-def infer_classifier_wandb_group(model_name: str) -> str:
-    """Tự động phân nhóm W&B cho Classifier dựa vào tên model."""
-    if "effb0" in model_name:
-        return "effb0_classifier"
-    
-    if "mobilenet" in model_name:
-        return "mobilenet_classifier"
-        
-    return f"{model_name}_classifier"
+DEFAULT_WANDB_PROJECT = "waste-detection-adn"
+LEGACY_WANDB_PROJECT = "waste-detection-taco"
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -84,7 +77,70 @@ def parse_args() -> argparse.Namespace:
         help="W&B entity/team/user. Có thể bỏ trống.",
     )
 
+    parser.add_argument(
+        "--wandb-project",
+        type=str,
+        default=None,
+        help="Override W&B project.",
+    )
+
     return parser.parse_args()
+
+
+def unique_tags(tags: Iterable[str]) -> List[str]:
+    seen = set()
+    result = []
+
+    for tag in tags:
+        tag = str(tag)
+
+        if tag not in seen:
+            result.append(tag)
+            seen.add(tag)
+
+    return result
+
+
+def normalize_wandb_tracking_config(
+    tracking_config: dict,
+    args: argparse.Namespace,
+) -> dict:
+    """
+    Apply CLI overrides and protect against the common case:
+    --use-wandb is passed but YAML still has mode: disabled.
+    """
+    if args.use_wandb:
+        tracking_config["use_wandb"] = True
+
+    if args.wandb_project is not None:
+        tracking_config["project"] = args.wandb_project
+
+    if args.wandb_entity is not None:
+        tracking_config["entity"] = args.wandb_entity
+
+    if args.wandb_mode is not None:
+        tracking_config["mode"] = args.wandb_mode
+
+        if args.wandb_mode == "disabled":
+            tracking_config["use_wandb"] = False
+
+    if bool(tracking_config.get("use_wandb", False)):
+        if tracking_config.get("mode") in {None, "", "disabled"}:
+            tracking_config["mode"] = "online"
+
+    project = str(tracking_config.get("project") or DEFAULT_WANDB_PROJECT)
+
+    if project == LEGACY_WANDB_PROJECT:
+        logger.warning(
+            "W&B project đang là legacy '%s'. Tự động đổi sang '%s'.",
+            LEGACY_WANDB_PROJECT,
+            DEFAULT_WANDB_PROJECT,
+        )
+        project = DEFAULT_WANDB_PROJECT
+
+    tracking_config["project"] = project
+
+    return tracking_config
 
 
 def main() -> None:
@@ -112,21 +168,10 @@ def main() -> None:
     experiment_config = loaded_config.experiment
 
     tracking_config = experiment_config.setdefault("tracking", {})
-
-    if args.use_wandb:
-        tracking_config["use_wandb"] = True
-    
-        if tracking_config.get("mode") in {None, "disabled"}:
-            tracking_config["mode"] = "online"
-
-    if args.wandb_mode is not None:
-        tracking_config["mode"] = args.wandb_mode
-
-        if args.wandb_mode == "disabled":
-            tracking_config["use_wandb"] = False
-
-    if args.wandb_entity is not None:
-        tracking_config["entity"] = args.wandb_entity
+    tracking_config = normalize_wandb_tracking_config(
+        tracking_config=tracking_config,
+        args=args,
+    )
 
     LoggerSetup.initialize(
         log_file=loaded_config.system.log_file_path,
@@ -182,6 +227,7 @@ def main() -> None:
 
     batch_size = int(training_config.get("batch_size", 16))
     num_workers = int(training_config.get("num_workers", 2))
+    pin_memory = device.type == "cuda"
 
     sampler_config = experiment_config.get("sampler", {})
 
@@ -197,7 +243,8 @@ def main() -> None:
         shuffle=train_sampler is None,
         sampler=train_sampler,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=pin_memory,
+        persistent_workers=num_workers > 0,
     )
 
     val_loader = DataLoader(
@@ -205,7 +252,8 @@ def main() -> None:
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=pin_memory,
+        persistent_workers=num_workers > 0,
     )
 
     use_class_weighting = bool(
@@ -235,7 +283,8 @@ def main() -> None:
         model.count_trainable_parameters(),
     )
 
-    model_name = model_config.get("model", {}).get("name", "hybrid_yolov8n_effb0")
+    model_config_name = model_config.get("model", {}).get("name", "hybrid_yolov8n_effb0")
+    classifier_name = classifier_config.get("name", "efficientnet_b0")
     run_name = experiment_config.get("experiment", {}).get("name", "run_unknown")
 
     output_dir = (
@@ -246,26 +295,40 @@ def main() -> None:
         / run_name
     )
 
+    wandb_group = tracking_config.get("group")
+
+    if wandb_group in {None, "", "ablation", "ablation_study"}:
+        wandb_group = "hybrid_classifier"
+
+    wandb_tags = unique_tags(
+        list(tracking_config.get("tags", []))
+        + [
+            "classifier",
+            "train_classifier",
+            classifier_name,
+            model_config_name,
+            run_name,
+        ]
+    )
+
     wandb_config = {
         "data": data_config,
         "model": model_config,
         "experiment": experiment_config,
         "system": loaded_config.system,
         "cli_args": vars(args),
+        "train_class_counts": train_dataset.get_class_counts(),
+        "val_class_counts": val_dataset.get_class_counts(),
     }
-
-    wandb_group = tracking_config.get("group")
-    if wandb_group in {None, "", "ablation", "ablation_study"}:
-        wandb_group = infer_classifier_wandb_group(model_name)
 
     wandb_logger = WandbLogger(
         enabled=bool(tracking_config.get("use_wandb", False)),
-        project=str(tracking_config.get("project", "waste-detection-adn")),
+        project=str(tracking_config.get("project", DEFAULT_WANDB_PROJECT)),
         entity=tracking_config.get("entity"),
-        run_name=f"{run_name}__{model_name}__classifier",
+        run_name=f"{run_name}__{classifier_name}__train_classifier",
         config=to_serializable(wandb_config),
         group=wandb_group,
-        tags=tracking_config.get("tags", []),
+        tags=wandb_tags,
         mode=tracking_config.get("mode"),
         job_type="train_classifier",
         notes=experiment_config.get("experiment", {}).get("description"),
@@ -292,29 +355,56 @@ def main() -> None:
         history = trainer.train()
 
         best_checkpoint_path = output_dir / "best.pth"
+        history_path = output_dir / "training_history.json"
 
         wandb_logger.log_summary(
             {
                 "best_metric": trainer.best_metric,
                 "best_checkpoint": str(best_checkpoint_path),
+                "best_checkpoint_exists": best_checkpoint_path.exists(),
+                "training_history_path": str(history_path),
+                "training_history_exists": history_path.exists(),
                 "num_epochs_ran": len(history),
-                "model_name": model_name,
+                "model_config_name": model_config_name,
+                "classifier_name": classifier_name,
                 "run_name": run_name,
+                "use_class_weighting": use_class_weighting,
+                "sampler_enabled": sampler_enabled,
             }
         )
 
         if bool(tracking_config.get("log_model", True)):
+            if best_checkpoint_path.exists():
+                wandb_logger.log_artifact(
+                    file_path=best_checkpoint_path,
+                    artifact_name=f"{run_name}-{classifier_name}-classifier-best",
+                    artifact_type="model",
+                    aliases=["best", run_name],
+                    metadata={
+                        "task": "crop_classification",
+                        "model": classifier_name,
+                        "model_config": model_config_name,
+                        "num_classes": data_config.classes.num_classes,
+                        "class_names": data_config.classes.names,
+                        "best_metric": trainer.best_metric,
+                    },
+                )
+            else:
+                logger.warning(
+                    "Không tìm thấy classifier best checkpoint: %s",
+                    best_checkpoint_path,
+                )
+
+        if history_path.exists():
             wandb_logger.log_artifact(
-                file_path=best_checkpoint_path,
-                artifact_name=f"{run_name}-{model_name}-classifier",
-                artifact_type="model",
-                aliases=["best", run_name],
+                file_path=history_path,
+                artifact_name=f"{run_name}-{classifier_name}-training-history",
+                artifact_type="metadata",
+                aliases=[run_name],
                 metadata={
                     "task": "crop_classification",
-                    "model": model_name,
-                    "num_classes": data_config.classes.num_classes,
-                    "class_names": data_config.classes.names,
-                    "best_metric": trainer.best_metric,
+                    "run_name": run_name,
+                    "classifier": classifier_name,
                 },
             )
 
@@ -329,13 +419,19 @@ def main() -> None:
         {
             "created_at": datetime.now().isoformat(timespec="seconds"),
             "task": "train_classifier",
-            "model_name": model_name,
+            "model_name": classifier_name,
+            "model_config_name": model_config_name,
             "run_name": run_name,
             "output_dir": str(output_dir),
             "best_checkpoint": str(output_dir / "best.pth"),
             "wandb_enabled": bool(tracking_config.get("use_wandb", False)),
             "wandb_mode": tracking_config.get("mode"),
+            "wandb_project": tracking_config.get("project"),
+            "wandb_entity": tracking_config.get("entity"),
+            "wandb_group": wandb_group,
             "best_metric": getattr(trainer, "best_metric", None),
+            "sampler_enabled": sampler_enabled,
+            "use_class_weighting": use_class_weighting,
         }
     )
 
