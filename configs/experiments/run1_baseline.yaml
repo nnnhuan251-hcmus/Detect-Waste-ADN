@@ -78,3 +78,5 @@ tracking:
   watch_model: false
   tags:
     - baseline
+    - pretrained
+    - constant_lr
