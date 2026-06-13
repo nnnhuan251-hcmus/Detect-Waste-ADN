@@ -15,7 +15,18 @@ from waste_detection.utils.seed import set_seed
 
 logger = logging.getLogger("train_detector")
 
+def infer_detector_wandb_group(model_name: str) -> str:
+    if model_name == "hybrid_yolov8n_effb0":
+        return "hybrid_detector"
 
+    if model_name == "yolov8s":
+        return "yolov8s_detector"
+
+    if model_name == "rtdetr_l":
+        return "rtdetr_l_detector"
+
+    return "detector"
+    
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Train detector using Ultralytics backend."
@@ -148,6 +159,10 @@ def main() -> None:
     output_root = Path(loaded_config.system.project_root) / "outputs" / "checkpoints"
     output_dir = output_root / model_name / run_name
 
+    wandb_group = tracking_config.get("group")
+    if wandb_group in {None, "", "ablation", "ablation_study"}:
+        wandb_group = infer_detector_wandb_group(model_name)
+
     wandb_config = {
         "data": data_config,
         "model": model_config,
@@ -158,11 +173,11 @@ def main() -> None:
 
     wandb_logger = WandbLogger(
         enabled=bool(tracking_config.get("use_wandb", False)),
-        project=str(tracking_config.get("project", "waste-detection-taco")),
+        project=str(tracking_config.get("project", "waste-detection-adn")),
         entity=tracking_config.get("entity"),
         run_name=f"{run_name}__{model_name}__detector",
         config=to_serializable(wandb_config),
-        group=tracking_config.get("group"),
+        group=wandb_group,
         tags=tracking_config.get("tags", []),
         mode=tracking_config.get("mode"),
         job_type="train_detector",
