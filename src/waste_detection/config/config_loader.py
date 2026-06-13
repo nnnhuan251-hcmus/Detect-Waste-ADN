@@ -464,6 +464,7 @@ class ConfigLoader:
             "training",
             "checkpoint",
             "tracking",
+            "sampler",
         ]
 
         ConfigLoader._validate_required_sections(
