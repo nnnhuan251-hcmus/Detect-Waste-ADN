@@ -149,7 +149,7 @@ class CropDatasetBuilder:
         output_class_names = self.class_names or sorted(set(category_id_to_name.values()))
 
         for class_name in output_class_names:
-            IOUtils.ensure_dir(split_output_dir / class_name)True)
+            IOUtils.ensure_dir(split_output_dir / class_name)
 
         annotations_by_image_id: Dict[int, List[Dict[str, Any]]] = {}
 
