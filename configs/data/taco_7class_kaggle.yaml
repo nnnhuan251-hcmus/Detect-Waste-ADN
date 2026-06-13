@@ -1,0 +1,98 @@
+dataset:
+  name: taco_7class
+  task: waste_detection
+  annotation_format: coco
+  source_annotation: official
+
+paths:
+  raw_root: /kaggle/input/taco/data/raw/TACO
+  annotation_file: /kaggle/input/taco/data/raw/TACO/annotations.json
+  image_root: /kaggle/input/taco/data/raw/TACO
+
+  interim_root: data/interim
+  processed_root: data/processed
+
+  coco_7class_dir: data/processed/coco_7class
+  yolo_7class_dir: data/processed/yolo_7class
+  yolo_binary_waste_dir: data/processed/yolo_binary_waste
+  crops_7class_dir: data/processed/crops_7class
+
+  annotations_7class_file: data/processed/coco_7class/annotations_7class.json
+  train_annotations_file: data/processed/coco_7class/train_annotations.json
+  val_annotations_file: data/processed/coco_7class/val_annotations.json
+  test_annotations_file: data/processed/coco_7class/test_annotations.json
+
+image_structure:
+  batch_dirs:
+    - batch_1
+    - batch_2
+    - batch_3
+    - batch_4
+    - batch_5
+    - batch_6
+    - batch_7
+    - batch_8
+    - batch_9
+    - batch_10
+    - batch_11
+    - batch_12
+    - batch_13
+    - batch_14
+    - batch_15
+
+  file_name_has_batch_prefix: true
+  allowed_extensions:
+    - .jpg
+    - .jpeg
+    - .png
+    - .JPG
+    - .JPEG
+    - .PNG
+
+classes:
+  num_classes: 7
+  names:
+    - plastic
+    - paper
+    - metal
+    - glass
+    - organic
+    - cigarette
+    - other
+
+  name_to_id:
+    plastic: 0
+    paper: 1
+    metal: 2
+    glass: 3
+    organic: 4
+    cigarette: 5
+    other: 6
+
+mapping:
+  file: configs/data/mapping_label.json
+  ignore_key: ignore
+  fail_on_unmapped: true
+
+split:
+  strategy: multilabel_stratified
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  seed: 42
+  shuffle: true
+
+bbox:
+  source_format: coco_xywh
+  min_width: 1
+  min_height: 1
+  clamp_to_image: true
+  drop_invalid_bbox: true
+
+crop_dataset:
+  output_size: 224
+  save_format: jpg
+  jpeg_quality: 95
+  include_context_margin: 0.10
+  min_crop_size: 8
+  write_metadata_csv: true
