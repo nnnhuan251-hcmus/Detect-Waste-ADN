@@ -94,3 +94,6 @@ tracking:
   watch_model: false
   tags:
     - strong_aug
+    - focal_loss
+    - class_weighting
+    - constant_lr
