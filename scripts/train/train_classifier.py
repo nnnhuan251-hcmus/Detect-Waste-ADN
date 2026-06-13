@@ -106,6 +106,9 @@ def main() -> None:
 
     if args.use_wandb:
         tracking_config["use_wandb"] = True
+    
+        if tracking_config.get("mode") in {None, "disabled"}:
+            tracking_config["mode"] = "online"
 
     if args.wandb_mode is not None:
         tracking_config["mode"] = args.wandb_mode
@@ -242,13 +245,20 @@ def main() -> None:
         "cli_args": vars(args),
     }
 
+    wandb_group = tracking_config.get("group")
+    if wandb_group in {None, "", "ablation", "ablation_study"}:
+        if "effb0" in model_name:
+            wandb_group = "effb0_classifier"
+        else:
+            wandb_group = f"{model_name}_classifier"
+
     wandb_logger = WandbLogger(
         enabled=bool(tracking_config.get("use_wandb", False)),
-        project=str(tracking_config.get("project", "waste-detection-taco")),
+        project=str(tracking_config.get("project", "waste-detection-adn")),
         entity=tracking_config.get("entity"),
         run_name=f"{run_name}__{model_name}__classifier",
         config=to_serializable(wandb_config),
-        group=tracking_config.get("group"),
+        group=wandb_group,
         tags=tracking_config.get("tags", []),
         mode=tracking_config.get("mode"),
         job_type="train_classifier",
