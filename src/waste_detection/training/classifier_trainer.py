@@ -72,7 +72,16 @@ class ClassifierTrainer(TrainerBase):
         self.checkpoint_config = experiment_config.get("checkpoint", {})
 
         self.epochs = int(self.training_config.get("epochs", 50))
-        self.patience = int(self.training_config.get("patience", 10))
+        early_stopping_enabled = bool(
+            self.training_config.get("early_stopping", True)
+        )
+        
+        self.patience = (
+            int(self.training_config.get("patience", 10))
+            if early_stopping_enabled
+            else 0
+        )
+        
         self.mixed_precision = bool(self.training_config.get("mixed_precision", True))
 
         self.criterion = LossFactory.build_classification_loss(
