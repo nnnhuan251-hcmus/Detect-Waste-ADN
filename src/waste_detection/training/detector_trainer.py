@@ -165,7 +165,12 @@ class DetectorTrainer(TrainerBase):
             "data": str(self.data_yaml_path),
             "epochs": epochs,
             "batch": batch_size,
-            "imgsz": image_size,
+            
+            # Cập nhật các dòng mới vào dictionary
+            "imgsz": int(self.detector_config.get("input_size", 640)),
+            "rect": False,
+            "multi_scale": False,
+            
             "project": str(self.output_root / self.model_name),
             "name": self.run_name,
             "exist_ok": True,
