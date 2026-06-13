@@ -112,4 +112,10 @@ tracking:
   log_model: true
   watch_model: false
   tags:
-    - freeze_cosine_warmup
+    - strong_aug
+    - focal_loss
+    - class_weighting
+    - freeze_unfreeze
+    - cosine_annealing
+    - warmup
+    - gradient_control
