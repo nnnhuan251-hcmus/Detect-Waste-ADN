@@ -185,7 +185,10 @@ class ClassifierTrainer(TrainerBase):
 
             self.optimizer.zero_grad(set_to_none=True)
 
-            with autocast("cuda", enabled=self.mixed_precision and self.device.type == "cuda"):
+            with autocast(
+                device_type=self.device.type,
+                enabled=self.mixed_precision and self.device.type == "cuda",
+            ):
                 logits = self.model(inputs)
                 loss = self.criterion(logits, labels)
 
@@ -231,7 +234,8 @@ class ClassifierTrainer(TrainerBase):
                 labels = labels.to(self.device, non_blocking=True)
 
                 with autocast(
-                    enabled=self.mixed_precision and self.device.type == "cuda"
+                    device_type=self.device.type,
+                    enabled=self.mixed_precision and self.device.type == "cuda",
                 ):
                     logits = self.model(inputs)
                     loss = self.criterion(logits, labels)
